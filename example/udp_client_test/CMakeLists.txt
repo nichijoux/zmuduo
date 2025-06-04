@@ -1,0 +1,3 @@
+add_executable(udp_client_test main.cc)
+
+target_link_libraries(udp_client_test zmuduo_net)

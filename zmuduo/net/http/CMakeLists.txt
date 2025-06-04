@@ -1,0 +1,14 @@
+file(GLOB_RECURSE HTTP_DIR ./*.cc)
+# 添加http库
+add_library(zmuduo_http SHARED ${HTTP_DIR})
+
+# 链接base_lib库
+target_link_libraries(zmuduo_http zmuduo_net)
+
+# 将zmuduo_http 拷贝到lib目录
+install(TARGETS zmuduo_http DESTINATION lib)
+# 把当前目录的头文件拷贝到指定目录
+file(GLOB HEADERS "./*.h")
+install(FILES ${HEADERS} DESTINATION include/zmuduo/net/http)
+
+add_subdirectory(ws)

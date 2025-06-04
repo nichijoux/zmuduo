@@ -1,0 +1,3 @@
+add_executable(tcp_client_test main.cc)
+
+target_link_libraries(tcp_client_test zmuduo_net)

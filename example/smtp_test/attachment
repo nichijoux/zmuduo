@@ -1,0 +1,31 @@
+#include <zmuduo/base/logger.h>
+#include <zmuduo/net/email/smtp_client.h>
+#include <zmuduo/net/event_loop.h>
+
+using namespace zmuduo::net;
+using namespace zmuduo::net::email;
+
+int main() {
+    auto a = EMailEntity::createAttachment("/mnt/d/s");
+
+    if (a) {
+        ZMUDUO_LOG_INFO << "S";
+    } else {
+        ZMUDUO_LOG_INFO << "E";
+    }
+    EventLoop  loop;
+    auto       address = IPv4Address::Create("127.0.0.1", 1025);
+    SmtpClient client(&loop, address, "SmtpClient");
+    client.setFailureCallback(
+        [](const std::string& message) { ZMUDUO_LOG_FMT_ERROR("发送失败%s", message.c_str()); });
+    client.setSuccessCallback([]() { ZMUDUO_LOG_FMT_INFO("发送成功"); });
+    EMail::Ptr email =
+        EMail::Create("test@example.com", "any-password", "Test Email",
+                      "<h1>Hello from SMTP client!</h1>", {"to@example.com"}, {}, {});
+    auto entity = EMailEntity::createAttachment("attachment");
+    email->addEntity(entity);
+    client.send(email);
+
+    loop.loop();
+    return 0;
+}

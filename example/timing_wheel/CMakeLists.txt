@@ -1,0 +1,3 @@
+add_executable(timing_wheel timing_wheel.cc)
+
+target_link_libraries(timing_wheel zmuduo_net)

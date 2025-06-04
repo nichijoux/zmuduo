@@ -1,0 +1,5 @@
+file(COPY mailbox DESTINATION ${CMAKE_BINARY_DIR}/example/pop3_test/mailbox)
+
+add_executable(pop3_test main.cc)
+
+target_link_libraries(pop3_test zmuduo_base zmuduo_net zmuduo_email ${OPENSSL_LIBRARIES})
