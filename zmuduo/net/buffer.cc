@@ -24,7 +24,7 @@ std::string Buffer::retrieveAsString(size_t length) {
     return result;
 }
 
-#define peekData(type)                                                                             \
+#define PEEK_DATA(type)                                                                            \
     do {                                                                                           \
         assert(getReadableBytes() >= sizeof(type));                                                \
         type data;                                                                                 \
@@ -33,22 +33,22 @@ std::string Buffer::retrieveAsString(size_t length) {
     } while (false)
 
 int64_t Buffer::peekInt64() const {
-    peekData(int64_t);
+    PEEK_DATA(int64_t);
 }
 
 int32_t Buffer::peekInt32() const {
-    peekData(int32_t);
+    PEEK_DATA(int32_t);
 }
 
 int16_t Buffer::peekInt16() const {
-    peekData(int64_t);
+    PEEK_DATA(int64_t);
 }
 
 int8_t Buffer::peekInt8() const {
-    peekData(int64_t);
+    PEEK_DATA(int64_t);
 }
 
-#undef peekData
+#undef PEEK_DATA
 
 void Buffer::prepend(const void* data, size_t length) {
     assert(length <= getPrependableBytes());
@@ -57,29 +57,29 @@ void Buffer::prepend(const void* data, size_t length) {
     std::copy(ptr, ptr + length, const_cast<char*>(begin()) + m_readerIndex);
 }
 
-#define prependData(x)                                                                             \
+#define PREPEND_DATA(x)                                                                            \
     do {                                                                                           \
         auto data = byteSwapOnLittleEndian(x);                                                     \
         prepend(&data, sizeof(data));                                                              \
     } while (false)
 
 void Buffer::prependInt64(int64_t x) {
-    prependData(x);
+    PREPEND_DATA(x);
 }
 
 void Buffer::prependInt32(int32_t x) {
-    prependData(x);
+    PREPEND_DATA(x);
 }
 
 void Buffer::prependInt16(int16_t x) {
-    prependData(x);
+    PREPEND_DATA(x);
 }
 
 void Buffer::prependInt8(int8_t x) {
-    prependData(x);
+    PREPEND_DATA(x);
 }
 
-#undef prependData
+#undef PREPEND_DATA
 
 void Buffer::retrieveInt64() {
     retrieve(sizeof(int64_t));
@@ -99,34 +99,33 @@ void Buffer::retrieveInt8() {
 
 void Buffer::write(const void* data, size_t length) {
     ensureWritableBytes(length);
-    const char* ptr = static_cast<const char*>(data);
-    std::copy(ptr, ptr + length, const_cast<char*>(getBeginWrite()));
+    memcpy((void*)(getBeginWrite()), data, length);
     hasWritten(length);
 }
 
-#define writeData(x)                                                                               \
+#define WRITE_DATA(x)                                                                              \
     do {                                                                                           \
         decltype(x) data = byteSwapOnLittleEndian(x);                                              \
         write(reinterpret_cast<const char*>(&data), sizeof(data));                                 \
     } while (false)
 
 void Buffer::writeInt64(int64_t x) {
-    writeData(x);
+    WRITE_DATA(x);
 }
 
 void Buffer::writeInt32(int32_t x) {
-    writeData(x);
+    WRITE_DATA(x);
 }
 
 void Buffer::writeInt16(int16_t x) {
-    writeData(x);
+    WRITE_DATA(x);
 }
 
 void Buffer::writeInt8(int8_t x) {
-    writeData(x);
+    WRITE_DATA(x);
 }
 
-#undef writeData
+#undef WRITE_DATA
 
 void Buffer::read(void* dist, size_t length) {
     assert(getReadableBytes() >= length);
@@ -134,7 +133,7 @@ void Buffer::read(void* dist, size_t length) {
     retrieve(length);
 }
 
-#define readData(type)                                                                             \
+#define READ_DATA(type)                                                                            \
     do {                                                                                           \
         assert(getReadableBytes() >= sizeof(type));                                                \
         type data;                                                                                 \
@@ -145,21 +144,21 @@ void Buffer::read(void* dist, size_t length) {
     } while (false)
 
 int64_t Buffer::readInt64() {
-    readData(int64_t);
+    READ_DATA(int64_t);
 }
 
 int32_t Buffer::readInt32() {
-    readData(int32_t);
+    READ_DATA(int32_t);
 }
 
 int16_t Buffer::readInt16() {
-    readData(int16_t);
+    READ_DATA(int16_t);
 }
 
 int8_t Buffer::readInt8() {
-    readData(int8_t);
+    READ_DATA(int8_t);
 }
-#undef readData
+#undef READ_DATA
 
 void Buffer::unwrite(size_t length) {
     assert(length <= getReadableBytes());

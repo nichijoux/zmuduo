@@ -17,12 +17,12 @@ int main() {
     HttpClient client(&loop, address, "client");
     client.connect();
     client.setConnectedCallback([&client]() {
-        client.doGet("/hello", [](const HttpResponse::Ptr& ptr) {
+        client.doGet("/hello", [](const auto& ptr) {
             if (ptr) {
                 ZMUDUO_LOG_IMPORTANT << ptr->toString();
             }
         });
-        client.doGet("/hello/1", [](const HttpResponse::Ptr& ptr) {
+        client.doGet("/hello/1", [](const auto& ptr) {
             if (ptr) {
                 ZMUDUO_LOG_IMPORTANT << ptr->toString();
             }

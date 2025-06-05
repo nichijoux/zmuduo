@@ -33,16 +33,7 @@ int main() {
         });
         client.retr(5, [](const Pop3RetrResponse::Ptr& response) {
             if (response->m_success) {
-//                auto email = parsePOP3ResponseToEmail(response->m_message);
-//                if (email) {
-//                    ZMUDUO_LOG_IMPORTANT << "解析成功";
-//
-//                    ZMUDUO_LOG_IMPORTANT << "Subject: " << email->getTitle();
-//                    ZMUDUO_LOG_IMPORTANT << "Body: " << email->getBody();
-//                    for (const auto& entity : email->getEntities()) {
-//                        ZMUDUO_LOG_IMPORTANT << "Attachment: " << entity->getContent();
-//                    }
-//                }
+                ZMUDUO_LOG_IMPORTANT << response->m_message;
             }
         });
     });

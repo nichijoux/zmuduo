@@ -479,9 +479,15 @@ void Pop3Client::quit(std::function<void(const Pop3QuitResponse::Ptr&)> callback
 template <typename T>
 Pop3Client::CommandCallback Pop3Client::wrapCallback(std::function<void(std::shared_ptr<T>)> cb) {
     return [cb = std::move(cb)](Pop3Response::Ptr resp) {
+        if (!resp) {
+            cb(nullptr);
+            return;
+        }
         auto casted = std::dynamic_pointer_cast<T>(resp);
         if (casted) {
             cb(casted);
+        } else {
+            cb(nullptr);
         }
     };
 }
