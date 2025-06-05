@@ -175,9 +175,9 @@ bool Address::GetInterfaceAddresses(std::vector<std::pair<Address::Ptr, uint32_t
         return false;
     }
 
-    auto its = results.equal_range(iface);
-    for (; its.first != its.second; ++its.first) {
-        result.push_back(its.first->second);
+    auto [begin, end] = results.equal_range(iface);
+    for (auto it = begin; it != end; ++it) {
+        result.push_back(it->second);
     }
     return !result.empty();
 }
@@ -207,8 +207,8 @@ Address::Ptr Address::Create(const sockaddr* addr) {
 }
 
 bool Address::operator<(const Address& rhs) const {
-    socklen_t minlen = std::min(getSockAddressLength(), rhs.getSockAddressLength());
-    int       result = memcmp(getSockAddress(), rhs.getSockAddress(), minlen);
+    socklen_t minLen = std::min(getSockAddressLength(), rhs.getSockAddressLength());
+    int       result = memcmp(getSockAddress(), rhs.getSockAddress(), minLen);
     if (result > 0) {
         return false;
     } else {
@@ -441,16 +441,22 @@ UnixAddress::UnixAddress() : m_addr(), m_length(0) {
 UnixAddress::UnixAddress(const std::string& path) : m_addr(), m_length(0) {
     bzero(&m_addr, sizeof(m_addr));
     m_addr.sun_family = AF_UNIX;
-    m_length          = path.size() + 1;
+    // 默认长度为路径长度 + 1
+    m_length = path.size() + 1;
 
+    // 如果是抽象命名空间（以 '\0' 开头），则不需要多加末尾 null 字节
     if (!path.empty() && path[0] == '\0') {
         --m_length;
     }
 
+    // 确保路径不超过 sockaddr_un::sun_path 最大长度
     if (m_length > sizeof(m_addr.sun_path)) {
         throw std::logic_error("path too long");
     }
+
+    // 将路径数据拷贝到 sun_path 中（可以包括 '\0'）
     memcpy(m_addr.sun_path, path.c_str(), m_length);
+    // 最终地址总长度 = sun_path 偏移量 + 实际路径长度
     m_length += offsetof(sockaddr_un, sun_path);
 }
 
@@ -472,12 +478,16 @@ socklen_t UnixAddress::getSockAddressLength() const {
 
 std::string UnixAddress::getPath() const {
     std::stringstream ss;
+    // 如果地址长度大于 sun_path 的偏移量，且首字符是 '\0'，说明是抽象命名空间路径
     if (m_length > offsetof(sockaddr_un, sun_path) && m_addr.sun_path[0] == '\0') {
+        // 构造 "\\0" 开头的字符串，跳过第一个 '\0' 字节
         ss << "\\0"
            << std::string(m_addr.sun_path + 1, m_length - offsetof(sockaddr_un, sun_path) - 1);
     } else {
+        // 普通的文件系统路径
         ss << m_addr.sun_path;
     }
+
     return ss.str();
 }
 

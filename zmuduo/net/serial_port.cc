@@ -17,7 +17,7 @@ SerialPort::SerialPort(EventLoop* loop, std::string portName, const SerialConfig
       m_portName(std::move(portName)),
       m_config(config),
       m_opened(false),
-      m_channel(),
+      m_channel(nullptr),
       m_messageCallback(nullptr) {}
 
 SerialPort::~SerialPort() {

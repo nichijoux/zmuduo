@@ -161,7 +161,7 @@ class SerialPort : NoCopyable {
     /**
      * @brief 设置串口配置。
      * @param[in] config 新配置。
-     * @note 必须在串口关闭时调用，打开后需重新打开串口以应用。
+     * @note 必须在串口打开前调用，关闭后可重新打开串口以应用。
      */
     void setConfig(const SerialConfig& config);
 

@@ -322,8 +322,12 @@ class UnixAddress : public Address {
     void setSockAddressLength(uint32_t v);
 
     /**
-     * @brief 获取Unix套接字路径
-     * @return 文件路径字符串
+     * @brief 获取 Unix 域套接字地址的路径字符串。
+     *
+     * @note 对于抽象命名空间地址（sun_path[0] == '\0'），
+     *       返回的字符串将以 "\\0" 开头，以区分普通路径。
+     *
+     * @return 路径字符串或抽象命名空间名（带 \0 前缀显示）。
      */
     std::string getPath() const;
 
