@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Usage: server <address> <port> <threads>\n");
     } else {
         ZMUDUO_LOG_FMT_INFO("pid =  %d, tid = %d", utils::SystemUtil::GetPid(),
-                            utils::SystemUtil::GetThreadId());
+                            utils::SystemUtil::GetTid());
 
         const char* ip          = argv[1];
         auto        port        = lexical_cast<uint16_t>(argv[2]);
