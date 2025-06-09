@@ -1,4 +1,4 @@
-file(GLOB_RECURSE EMAIL_DIR ./*.cc)
+aux_source_directory(. EMAIL_DIR)
 
 # 添加email库
 add_library(zmuduo_email SHARED ${EMAIL_DIR})

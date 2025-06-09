@@ -1,4 +1,4 @@
-file(GLOB_RECURSE HTTP_DIR ./*.cc)
+aux_source_directory(. HTTP_DIR)
 # 添加http库
 add_library(zmuduo_http SHARED ${HTTP_DIR})
 
