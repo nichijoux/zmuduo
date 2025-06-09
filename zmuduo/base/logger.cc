@@ -1,15 +1,9 @@
-#include "logger.h"
-#include "timestamp.h"
-#include "zmuduo/base/utils/fs_util.h"
-#include "zmuduo/base/utils/system_util.h"
+#include "zmuduo/base/logger.h"
 
-#include <cassert>
+#include "zmuduo/base/utils/system_util.h"
 #include <csignal>
 #include <cstdarg>
-#include <cstdio>
-#include <cstring>
 #include <iostream>
-#include <sstream>
 
 namespace zmuduo {
 void Exit(int sig) {
@@ -42,9 +36,7 @@ std::string LogLevel::ToString(LogLevel::Level level) {
 
 LogLevel::Level LogLevel::FromString(const std::string& s) {
 #define CONVERT(level, str)                                                                        \
-    if (s == #str) {                                                                               \
-        return LogLevel::Level::level;                                                             \
-    }
+    if (s == #str) { return LogLevel::Level::level; }
 
     CONVERT(DEBUG, debug)
     CONVERT(DEBUG, DEBUG)
@@ -83,9 +75,7 @@ std::string LogMode::ToString(LogMode::Mode mode) {
 
 LogMode::Mode LogMode::FromString(const std::string& s) {
 #define CONVERT(mode, str)                                                                         \
-    if (s == #str) {                                                                               \
-        return LogMode::Mode::mode;                                                                \
-    }
+    if (s == #str) { return LogMode::Mode::mode; }
     CONVERT(STDOUT, STDOUT)
     CONVERT(FILE, FILE)
     CONVERT(BOTH, BOTH)
@@ -94,221 +84,206 @@ LogMode::Mode LogMode::FromString(const std::string& s) {
     return LogMode::Mode::STDOUT;
 }
 
-// LogEvent
-LogEvent::LogEvent(int32_t line, const char* file, LogLevel::Level level)
-    : m_line(line),
-      m_file(file),
-      m_level(level),
-      m_fiberId(0),
-      m_pid(0),
-      m_tid(0),
-      m_time(0),
-      m_ss() {}
+LogMessage::LogMessage(LogLevel::Level level,
+                       std::string     content,
+                       std::string     file,
+                       int             line,
+                       std::string     func)
+    : m_level(level),
+      m_content(std::move(content)),
+      m_timestamp(Timestamp::Now()),
+      m_pid(utils::SystemUtil::GetPid()),
+      m_tid(utils::SystemUtil::GetTid()),
+      m_filename(std::move(file)),
+      m_line(line),
+      m_function(std::move(func)) {}
 
-void LogEvent::format(const char* fmt, ...) {
-    va_list al;
-    va_start(al, fmt);
-    getStream();
-    format(fmt, al);
-    va_end(al);
-}
-
-void LogEvent::format(const char* fmt, va_list al) {
-    char* buffer = nullptr;
-    int   len    = vasprintf(&buffer, fmt, al);
-    if (len != -1) {
-        std::string s = std::string(buffer, len);
-        m_ss << std::string(buffer, len);
-        free(buffer);
-    }
-}
-
-std::stringstream& LogEvent::getStream() {
-    // 设置颜色
-#define LevelColor(level, color)                                                                   \
-    case LogLevel::Level::level: {                                                                 \
-        m_ss << color << "[" << LogLevel::ToString(m_level) << "]";                                \
-        break;                                                                                     \
-    }
-
-    switch (m_level) {
-        LevelColor(INFO, "\033[34m")           // 蓝色
-            LevelColor(ERROR, "\033[31m")      // 红色
-            LevelColor(WARNING, "\033[33m")    // 黄色
-            LevelColor(IMPORTANT, "\033[32m")  // 绿色
-            LevelColor(DEBUG, "\033[36m")      // 青色
-            default : m_ss
-                      << "\033[0m[DEFAULT]";  // 默认颜色
-        break;
-    }
-#undef LevelColor
-    m_ss << "[" << Timestamp::Now() << "][" << utils::SystemUtil::GetPid() << "]["
-         << utils::SystemUtil::GetThreadId() << "][" << utils::FSUtil::GetName(m_file) << ":"
-         << m_line << "]---";
-    return m_ss;
-}
-
-std::string LogEvent::getLog() {
-    return m_ss.str() + "\n";
-}
-
-LogEventWrap::~LogEventWrap() {
-    ZMUDUO_LOGGER_ROOT->log(m_event.getLog());
-    if (m_event.getLevel() == LogLevel::Level::FATAL) {
-        exit(0);
-    }
-}
-
-// AsyncLogger
-AsyncLogger::AsyncLogger(LogMode::Mode mode,
-                         const char*   filePath,
-                         int32_t       maxSize,
-                         int64_t       interval)
-    : m_filePath(filePath),
-      m_mode(mode),
-      m_maxSize(maxSize),
-      m_interval(interval),
-      m_no(0),
-      m_date(Date::Now()),
-      m_thread([this]() { mainLoop(this); }),
-      m_stop(true),
-      m_reopen(true),
-      m_file(nullptr),
-      m_semaphore() {
-    m_thread.start();
-
-    m_semaphore.wait();
+AsyncLogger::AsyncLogger()
+    : m_stop(false),
+      m_minLevel(LogLevel::DEBUG),
+      m_mode(LogMode::STDOUT),
+      m_logFilePath("./"),
+      m_maxFileSize(100 * 1024 * 1024),
+      m_currentFileSize(0),
+      m_fileIndex(0),
+      m_enableColor(true),
+      m_workerThread([this]() { processLogs(); }) {
+    m_workerThread.start();
 }
 
 AsyncLogger::~AsyncLogger() {
-    stop();
-    if (m_file) {
-        fclose(m_file);
-        m_file = nullptr;
+    m_stop = true;
+    m_condition.notify_all();
+    if (m_fileStream.is_open()) { m_fileStream.close(); }
+}
+
+AsyncLogger& AsyncLogger::GetInstance() {
+    static AsyncLogger logger;
+    return logger;
+}
+
+void AsyncLogger::reset(LogLevel::Level    level,
+                        LogMode::Mode      mode,
+                        const std::string& filepath,
+                        size_t             maxFileSize,
+                        bool               enableColor) {
+    // 最小记录级别
+    m_minLevel = level;
+    // 记录模式
+    m_mode = mode;
+    // 是否显示颜色
+    m_enableColor = enableColor;
+
+    // 文件记录设置,是否需要重新打开文件
+    if (filepath != m_logFilePath || maxFileSize != m_maxFileSize) {
+        // 关闭当前文件
+        if (m_fileStream.is_open()) { m_fileStream.close(); }
+        // 重置文件信息
+        m_logFilePath     = filepath;
+        m_maxFileSize     = maxFileSize;
+        m_fileIndex       = 0;
+        m_currentFileSize = 0;
+        // 是否需要真的打开文件
+        if (m_mode == LogMode::Mode::FILE || m_mode == LogMode::Mode::BOTH) { openLogFile(); }
+    } else {
+        // 否则更新最大文件大小即可
+        m_maxFileSize = maxFileSize;
     }
 }
 
-void AsyncLogger::stop() {
-    if (!m_stop) {
-        m_stop = true;
-        m_condition.notify_one();
-        m_thread.join();
-    }
-}
-
-void AsyncLogger::push(std::vector<std::string>& buffer) {
+void AsyncLogger::log(LogLevel::Level    level,
+                      const std::string& message,
+                      const std::string& filename,
+                      int                line,
+                      const std::string& function) {
+    // 日记级别分裂
+    if (level < m_minLevel) { return; }
+    // 创建日志信息
+    LogMessage logMessage(level, message, filename, line, function);
+    // 放入队列中准备打印
     {
-        std::unique_lock<std::mutex> lock(m_operator_mutex);
-        m_queue.push(buffer);
+        std::lock_guard<std::mutex> lock(m_queueMutex);
+        m_logQueue.emplace(std::move(logMessage));
     }
-
     m_condition.notify_one();
 }
 
-void* AsyncLogger::mainLoop(void* arg) {
-    auto* logger   = reinterpret_cast<AsyncLogger*>(arg);
-    logger->m_stop = false;
-    logger->m_semaphore.notify();
+void AsyncLogger::logFormat(LogLevel::Level    level,
+                            const std::string& filename,
+                            int                line,
+                            const std::string& function,
+                            const char*        format,
+                            ...) {
+    if (level < m_minLevel) { return; }
+    // 使用vasprintf确定buffer大小
+    va_list args;
+    va_start(args, format);
+    char* buffer = nullptr;
+    auto  size   = vasprintf(&buffer, format, args);
+    if (size != -1) {
+        log(level, std::string(buffer, size), filename, line, function);
+        free(buffer);
+    }
+    va_end(args);
+}
 
-    while (true) {
-        bool                     isStop;
-        std::vector<std::string> msg;
-        {
-            std::unique_lock<std::mutex> lock(logger->m_main_mutex);
-            while (logger->m_queue.empty() && !logger->m_stop) {
-                logger->m_condition.wait(lock);
+std::string AsyncLogger::GetLevelColor(LogLevel::Level level) {
+    switch (level) {
+        case LogLevel::Level::DEBUG: return color::CYAN;
+        case LogLevel::Level::INFO: return color::BLUE;
+        case LogLevel::Level::WARNING: return color::YELLOW;
+        case LogLevel::Level::IMPORTANT: return color::GREEN;
+        case LogLevel::Level::ERROR: return color::RED;
+        case LogLevel::Level::FATAL: return color::BOLD_RED;
+        default: return color::RESET;
+    }
+}
+
+std::string AsyncLogger::FormatMessage(const LogMessage& message, bool useColor) {
+    std::ostringstream oss;
+
+    if (useColor) { oss << GetLevelColor(message.m_level); }
+
+    oss << "[" << LogLevel::ToString(message.m_level) << "]" << "[" << message.m_timestamp << "]"
+        << "[" << message.m_pid << "]" << "[" << message.m_tid << "]" << "[" << message.m_filename
+        << ":" << message.m_line << "]" << "[" << message.m_function << "()]" << "---"
+        << message.m_content;
+
+    if (useColor) { oss << color::RESET; }
+
+    return oss.str();
+}
+
+void AsyncLogger::openLogFile() {
+    // 如果当前打开了文件则关闭
+    if (m_fileStream.is_open()) { m_fileStream.close(); }
+    // 获取文件名
+    std::stringstream ss;
+    ss << m_logFilePath << Date::Now() << m_fileIndex << ".log";
+    std::string filename = ss.str();
+    // 追加方式打开文件
+    m_fileStream.open(filename, std::ios::app);
+    if (!m_fileStream.is_open()) {
+        std::cerr << "Failed to open log file: " << filename << std::endl;
+    }
+
+    // 获取当前文件大小(判断是否需要切片)
+    m_fileStream.seekp(0, std::ios::end);
+    m_currentFileSize = m_fileStream.tellp();
+}
+
+void AsyncLogger::checkFileRotation() {
+    if (m_currentFileSize >= m_maxFileSize) {
+        m_fileIndex++;
+        m_currentFileSize = 0;
+        openLogFile();
+    }
+}
+
+void AsyncLogger::processLogs() {
+    while (!m_stop) {
+        std::unique_lock<std::mutex> lock(m_queueMutex);
+        m_condition.wait(lock, [this] { return !m_logQueue.empty() || m_stop; });
+        // 获取队列内容
+        while (!m_logQueue.empty()) {
+            LogMessage message = m_logQueue.front();
+            m_logQueue.pop();
+            lock.unlock();
+            // 写入STDOUT
+            if (m_mode != LogMode::FILE) {
+                std::string colored_msg = FormatMessage(message, m_enableColor);
+                std::cout << colored_msg << std::endl;
             }
-
-            isStop = logger->m_stop;
-
-            if (isStop && logger->m_queue.empty()) {
-                break;
-            }
-
-            if (!logger->m_queue.empty()) {
-                msg = logger->m_queue.front();
-                logger->m_queue.pop();
-            }
-        }
-
-        if (logger->m_mode != LogMode::Mode::FILE) {
-            for (auto& i : msg) {
-                std::cout << i;
-            }
-        }
-
-        if (logger->m_mode != LogMode::Mode::STDOUT) {
-            Date date = Date::Now();
-            if (date != logger->m_date) {
-                logger->m_no     = 0;
-                logger->m_date   = date;
-                logger->m_reopen = true;
-                if (logger->m_file) {
-                    fclose(logger->m_file);
+            // 写入文件
+            if (m_mode != LogMode::STDOUT) {
+                // 尝试打开文件
+                if (!m_fileStream.is_open()) { openLogFile(); }
+                // 写入文件
+                if (m_fileStream.is_open()) {
+                    // 写入文件的不需要颜色
+                    std::string plainMessage = FormatMessage(message, false);
+                    m_fileStream << plainMessage << std::endl;
+                    m_fileStream.flush();
+                    // 检测是否需要文件切片
+                    m_currentFileSize += plainMessage.length() + 1;
+                    checkFileRotation();
                 }
             }
-
-            std::stringstream ss;
-            ss << logger->m_filePath << logger->m_date << "_" << logger->m_no << ".log";
-
-            if (logger->m_reopen || !logger->m_file) {
-                // 创建文件并打开
-                logger->m_file = fopen(ss.str().data(), "a");
-                assert(logger->m_file);
-                logger->m_reopen = false;
-            }
-
-            if (ftell(logger->m_file) > logger->m_maxSize) {
-                fclose(logger->m_file);
-
-                logger->m_no++;
-                std::stringstream ss2;
-                ss2 << logger->m_filePath << logger->m_date << "_" << logger->m_no << ".log";
-
-                logger->m_file = fopen(ss2.str().c_str(), "a");
-                assert(logger->m_file);
-                logger->m_reopen = false;
-            }
-
-            for (auto& i : msg) {
-                if (!i.empty()) {
-                    fwrite(i.c_str(), 1, i.size(), logger->m_file);
-                }
-            }
-            fflush(logger->m_file);
+            // 是否为FATAL
+            if (message.m_level == LogLevel::Level::FATAL) { exit(0); }
+            lock.lock();
         }
     }
-
-    if (logger->m_file) {
-        fclose(logger->m_file);
-        logger->m_file = nullptr;
-    }
-
-    return nullptr;
 }
 
-// Logger
-Logger::Logger(LogMode::Mode   mode,
-               const char*     filePath,
-               int32_t         maxSize,
-               int64_t         interval,
-               LogLevel::Level level)
-    : m_level(level), m_asyncLogger(mode, filePath, maxSize, interval) {}
+LogStream::LogStream(LogLevel::Level level, std::string filename, int line, std::string function)
+    : m_level(level),
+      m_filename(std::move(filename)),
+      m_line(line),
+      m_function(std::move(function)) {}
 
-Logger::~Logger() {
-    m_asyncLogger.stop();
+LogStream::~LogStream() {
+    AsyncLogger::GetInstance().log(m_level, m_oss.str(), m_filename, m_line, m_function);
 }
 
-void Logger::log(const std::string& msg) {
-    std::vector<std::string> tmp;
-    {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        m_buffer.push_back(msg);
-        tmp.swap(m_buffer);
-    }
-
-    m_asyncLogger.push(tmp);
-}
-
-bool LoggerManager::m_isDefault = true;
 }  // namespace zmuduo
