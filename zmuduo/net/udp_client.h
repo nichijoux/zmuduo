@@ -31,7 +31,7 @@ namespace zmuduo::net {
  *
  * int main() {
  *     EventLoop loop;
- *     auto serverAddr = Address::CreateAddress("127.0.0.1", 8888);
+ *     auto serverAddr = IPv4Address::Create("127.0.0.1", 8888);
  *     UdpClient client(&loop, serverAddr, AF_INET, "TestClient");
  *     client.setMessageCallback([](UdpClient& client, Buffer& buffer) {
  *         std::cout << "Received: " << buffer.retrieveAsString() << std::endl;
