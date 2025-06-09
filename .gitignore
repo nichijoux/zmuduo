@@ -626,3 +626,7 @@ FodyWeavers.xsd
 aarch.cmake
 lib
 build
+
+*.pb.h
+*.pb.cpp
+*.pb.cc
