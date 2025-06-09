@@ -141,6 +141,15 @@ class TcpServer : NoCopyable {
     void start();
 
     /**
+     * @brief 服务器是否已经启动
+     * @retval true 服务器已经启动
+     * @retval false 服务器未启动
+     */
+    bool isStarted() const {
+        return m_started;
+    }
+
+    /**
      * @brief 获取主事件循环。
      * @return 主事件循环指针。
      */
