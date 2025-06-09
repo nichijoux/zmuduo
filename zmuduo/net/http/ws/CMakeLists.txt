@@ -1,7 +1,7 @@
-file(GLOB_RECURSE WS_DIR ./*.cc)
+aux_source_directory(. WS_DIR)
 
 # 添加http库
-add_library(zmuduo_ws SHARED ${HTTP_DIR})
+add_library(zmuduo_ws SHARED ${WS_DIR})
 
 # 链接base_lib库
 target_link_libraries(zmuduo_ws zmuduo_http)
