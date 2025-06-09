@@ -71,10 +71,20 @@ zmuduo 通过模块化的命名空间设计，提供了网络通信和实用工�
 - Smtp 客户端
 - Pop3 客户端
 
+### 7. `zmuduo::net::rpc` - RPC 远程调用模块
+
+该模块基于 `protobuf` 编写，提供了服务注册、发现和远程调用功能。
+
+- 异步 RPC 调用，通过回调封装 Protobuf 服务，和模板功能实现 RPC 回调。
+- 服务注册（ServiceRegistration）和服务发现（ServiceDiscovery），与注册中心交互。
+- 心跳机制（HeartbeatSignal），确保服务存活状态。
+- 统一的 RPC 消息结构（RpcMessage），支持多种消息类型。
+
 ## example
 
 - `example` 目录中是 zmuduo 库的基础使用，其中部分代码(如`pingpong`)参考 [muduo](https://github.com/chenshuo/muduo) 实现。
 - `webdav` 目录实现了一个简单的 webdav 服务器，支持 OPTIONS、GET、PUT、DELETE、MKCOL等命令，但不支持 LOCK 和 UNLOCK
+- `rpc` 目录展示了简单的 rpc 调用方式
 
 ## 安装说明
 
@@ -122,6 +132,7 @@ zmuduo
 - 如果启用 `ZMUDUO_ENABLE_OPENSSL` 则项目将依赖 openssl
 - `example/inspect` 样例中使用了 `Gperftools`
 - `example/webdav` 样例中如果找到 `zlib`，则代码中会启用压缩过滤器，该过滤器将在servlet代码处理完毕后进行gzip或者deflate压缩
+- 如果找到了 `protobuf` 则项目将编译 `rpc` 模块
 
 ## 许可证
 

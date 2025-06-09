@@ -1,0 +1,136 @@
+syntax = "proto3";
+
+package zmuduo.net.rpc; // namespace
+
+option java_package = "com.nichijoux.zmuduo.protorpc";
+option java_outer_classname = "RpcProto";
+
+// ==============================
+// 消息类型枚举定义
+// ==============================
+
+/**
+ * 表示 RpcMessage 中携带的具体消息类型
+ */
+enum MessageType {
+  UNKNOWN = 0;              // 未知类型（默认值）
+  RPC_REQUEST = 1;          // 普通 RPC 请求
+  RPC_RESPONSE = 2;         // RPC 响应
+  REGISTER_REQUEST = 3;     // 服务注册请求
+  REGISTER_RESPONSE = 4;    // 服务注册响应
+  DISCOVER_REQUEST = 5;     // 服务发现请求
+  DISCOVER_RESPONSE = 6;    // 服务发现响应
+  HEARTBEAT_REQUEST = 7;    // 心跳请求（服务保活）
+  HEARTBEAT_RESPONSE = 8;   // 心跳响应（中心返回状态）
+}
+
+// ==============================
+// RPC 请求结构体
+// ==============================
+
+/**
+ * 表示一次 RPC 请求的信息
+ */
+message RpcRequest {
+  string service_name = 1;   // 目标服务名称
+  string method_name = 2;    // 目标方法名称
+  bytes  params = 3;         // 请求参数
+}
+
+// ==============================
+// RPC 响应结构体
+// ==============================
+
+/**
+ * 表示一次 RPC 响应的数据
+ */
+message RpcResponse {
+  string error = 1;      // 错误描述信息
+  bytes data = 2;        // 响应结果数据（protobuf 序列化）
+}
+
+// ==============================
+// 服务注册结构体
+// ==============================
+
+/**
+ * 表示一个服务实例的注册信息
+ */
+message ServiceRegistration {
+  string service_name = 1;   // 注册的服务名
+  string listen_ip = 2;      // 服务监听的 IP 地址
+  uint32 listen_port = 3;    // 服务监听的端口号
+}
+
+/**
+ * 注册中心响应服务注册的结果
+ */
+message RegistrationResult {
+  string assigned_id = 1;       // 分配的服务唯一 ID
+  uint32 heartbeat_interval = 2;// 心跳上报时间间隔（毫秒）
+}
+
+// ==============================
+// 服务发现结构体
+// ==============================
+
+/**
+ * 用于请求发现一个服务的实例
+ */
+message ServiceDiscovery {
+  string service_name = 1; // 要发现的服务名称
+}
+
+/**
+ * 返回发现的服务端点信息
+ */
+message ServiceEndpoint {
+  string service_name = 1;    // 服务名称
+  string endpoint_ip = 2;     // 实例的 IP 地址
+  uint32 endpoint_port = 3;   // 实例的端口号
+}
+
+// ==============================
+// 心跳结构体
+// ==============================
+
+/**
+ * 服务向中心发送的心跳包
+ */
+message HeartbeatSignal {
+  string service_id = 1;     // 注册中心分配的服务 ID
+  uint64 timestamp = 2;      // 当前时间戳（毫秒）
+}
+
+/**
+ * 注册中心返回的心跳确认
+ */
+message HeartbeatAck {
+  bool healthy = 1;          // 是否健康
+  string service_id = 2;     // 注册中心分配的服务 ID
+  string message = 3;        // 附加说明（如异常原因）
+}
+
+// ==============================
+// 通用 RPC 消息封装
+// ==============================
+
+/**
+ * 所有请求/响应的统一封装结构
+ */
+message RpcMessage {
+  MessageType type = 1;      // 消息类型（用来区分 payload 的实际内容）
+  uint64 sequence_id = 2;    // 请求序号（用于匹配请求和响应）
+  uint32 status_code = 3;    // 状态码（用于区分是否正确）
+  // only one of the following fields may be set
+  oneof payload {
+    RpcRequest request = 10;                // 普通 RPC 请求
+    RpcResponse response = 11;              // 普通 RPC 响应
+    ServiceRegistration register_req = 12;  // 服务注册请求
+    RegistrationResult register_res = 13;   // 注册响应
+    ServiceDiscovery discover_req = 14;     // 服务发现请求
+    ServiceEndpoint discover_res = 15;      // 服务发现响应
+    HeartbeatSignal heartbeat_req = 16;     // 心跳请求
+    HeartbeatAck heartbeat_res = 17;        // 心跳响应
+  }
+}
