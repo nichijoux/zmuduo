@@ -27,3 +27,5 @@ endif ()
 
 add_subdirectory(cdns)
 add_subdirectory(webdav)
+
+add_subdirectory(rpc_test)

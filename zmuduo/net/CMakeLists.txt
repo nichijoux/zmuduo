@@ -1,5 +1,11 @@
-file(GLOB_RECURSE NET_DIR ./*.cc)
+# 获取当前目录的源文件
+aux_source_directory(. NET_DIR)
+# 设置 poller 子目录下所有 .cc 文件
+file(GLOB POLLER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/poller/*.cc")
+# 合并两个源文件列表
+set(NET_DIR ${NET_DIR} ${POLLER_DIR})
 
+message("net dir is ${NET_DIR}")
 # 添加net库
 add_library(zmuduo_net SHARED ${NET_DIR})
 
@@ -31,4 +37,11 @@ install(FILES ${HEADERS} DESTINATION include/zmuduo/net)
 
 # http库
 add_subdirectory(http)
+# 邮件库
 add_subdirectory(email)
+find_package(Protobuf REQUIRED)
+# rpc库
+if (PROTOBUF_FOUND)
+    # 找到了protobuf，编译rpc模块
+    add_subdirectory(rpc)
+endif ()
