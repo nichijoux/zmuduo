@@ -18,7 +18,7 @@ namespace zmuduo::utils {
  * 所有方法均为静态，无需实例化，适合日志记录、性能分析和线程控制。
  *
  * @note SystemUtil 不可拷贝或移动（继承自 NoCopyable 和 NoMoveable），所有方法线程安全。
- * @note GetThreadId 使用 thread_local 缓存线程 ID，减少系统调用开销。
+ * @note GetTid 使用 thread_local 缓存线程 ID，减少系统调用开销。
  *
  * @example
  * @code
@@ -27,7 +27,7 @@ namespace zmuduo::utils {
  *
  * int main() {
  *     std::cout << "Process ID: " << zmuduo::utils::SystemUtil::GetPid() << std::endl;
- *     std::cout << "Thread ID: " << zmuduo::utils::SystemUtil::GetThreadId() << std::endl;
+ *     std::cout << "Thread ID: " << zmuduo::utils::SystemUtil::GetTid() << std::endl;
  *     uint64_t start = zmuduo::utils::SystemUtil::GetCurrentMS();
  *     zmuduo::utils::SystemUtil::Sleep(1);
  *     std::cout << "Elapsed: " << zmuduo::utils::SystemUtil::GetCurrentMS() - start << " ms" <<
@@ -50,7 +50,7 @@ class SystemUtil : NoCopyable, NoMoveable {
      * @note 使用 thread_local 缓存 SYS_gettid
      * 结果，首次调用执行系统调用，后续直接返回缓存值，线程安全。
      */
-    static pid_t GetThreadId();
+    static pid_t GetTid();
 
     /**
      * @brief 获取当前时间（毫秒）。

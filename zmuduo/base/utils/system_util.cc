@@ -12,8 +12,8 @@ pid_t SystemUtil::GetPid() {
     return getpid();
 }
 
-pid_t SystemUtil::GetThreadId() {
-    if (ZMUDUO_LIKELY(tid)) {
+pid_t SystemUtil::GetTid() {
+    if (ZMUDUO_UNLIKELY(tid == 0)) {
         tid = static_cast<pid_t>(syscall(SYS_gettid));
     }
     return tid;
