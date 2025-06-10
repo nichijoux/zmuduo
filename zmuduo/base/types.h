@@ -4,7 +4,9 @@
 #ifndef ZMUDUO_BASE_TYPES_H
 #define ZMUDUO_BASE_TYPES_H
 
+#include <charconv>
 #include <sstream>
+
 namespace zmuduo {
 // Taken from google-protobuf stubs/common.h
 //
@@ -100,47 +102,168 @@ inline To down_cast(From* f)           // so we only accept pointers
     return static_cast<To>(f);
 }
 
-class bad_lexical_cast : public std::runtime_error {
-  public:
-    explicit bad_lexical_cast(const std::string& what) : std::runtime_error(what) {}
-};
+/**
+ * @brief 解析字符串为指定类型，支持可选回退值。
+ *
+ * 根据目标类型 `T` 的特性选择高效解析方式：<br/>
+ * 整型使用 `std::from_chars`，高效且无异常。<br/>
+ * 浮点型使用 `std::strtof`、`strtod` 或 `strtold`，检查 `errno` 和范围。<br/>
+ * 其他类型通过 `std::istringstream` 提取，支持流式输入。
+ *
+ * @tparam T 目标类型。
+ * @tparam has_fallback 是否提供回退值（默认 `false`）。
+ * @tparam Fallback 回退值类型（默认 `T`）。
+ * @param[in] str 输入字符串。
+ * @param[in] fallback 回退值（默认构造 `Fallback{}`），仅当 `has_fallback` 为 `true` 时生效。
+ * @return T 解析结果，失败时返回默认构造的 `T{}` 或 `static_cast<T>(fallback)`。
+ *
+ * @note 整型解析失败返回 `T{}` 或 `fallback`，浮点型检查 `errno` 和转换范围。
+ * @note 其他类型依赖 `operator>>`，需确保 `T` 支持流提取。
+ * @note 空字符串或无效输入可能导致默认值或回退值。
+ *
+ * @example
+ *
+ * @code
+ * int i = parse_value<int>("123"); // 返回 123
+ * int j = parse_value<int, true>("abc", 42); // 返回 42（回退值）
+ * double d = parse_value<double>("3.14"); // 返回 3.14
+ * std::string s = parse_value<std::string>("hello"); // 返回 "hello"
+ * @endcode
+ */
+template <typename T, bool has_fallback = false, typename Fallback = T>
+T parse_value(const std::string& str, Fallback&& fallback = Fallback{}) {
+    if constexpr (std::is_integral_v<T>) {
+        // 数值类型
+        T value{};
+        auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
+        if (ec == std::errc()) {
+            return value;
+        } else if constexpr (has_fallback) {
+            return static_cast<T>(std::forward<Fallback>(fallback));
+        } else {
+            return T{};
+        }
+    } else if constexpr (std::is_floating_point_v<T>) {
+        // 浮点数
+        const char* begin = str.c_str();
+        char*       end   = nullptr;
+        errno             = 0;
+
+        T result{};
+        if constexpr (std::is_same_v<T, float>) {
+            result = std::strtof(begin, &end);
+        } else if constexpr (std::is_same_v<T, double>) {
+            result = std::strtod(begin, &end);
+        } else if constexpr (std::is_same_v<T, long double>) {
+            result = std::strtold(begin, &end);
+        } else {
+            if constexpr (has_fallback)
+                return static_cast<T>(std::forward<Fallback>(fallback));
+            else
+                return T{};
+        }
+        // 转换失败
+        if (begin == end || errno != 0) {
+            if constexpr (has_fallback) {
+                return static_cast<T>(std::forward<Fallback>(fallback));
+            } else {
+                return T{};
+            }
+        }
+        return result;
+    } else {
+        // 其他类型
+        std::istringstream iss(str);
+        T                  value{};
+        iss >> value;
+        // 转换失败
+        if (iss.fail()) {
+            if constexpr (has_fallback) {
+                return static_cast<T>(std::forward<Fallback>(fallback));
+            } else {
+                return T{};
+            }
+        }
+        return value;
+    }
+}
 
 /**
- * @brief 将字符串转换为值形式
- * @tparam S
- * @tparam T
- * @param arg
- * @return
+ * @brief 将源类型转换为目标类型，无回退值。
+ *
+ * 使用 `std::stringstream` 将源类型 `S` 序列化为字符串，再通过 `parse_value` 解析为目标类型 `T`。
+ * 转换失败时返回默认构造的 `T{}`。
+ *
+ * @tparam T 目标类型。
+ * @tparam S 源类型。
+ * @param[in] arg 源值。
+ * @return T 转换结果，失败时返回 `T{}`。
+ *
+ * @note 源类型需支持 `operator<<` 序列化，目标类型需支持 `parse_value` 解析。
+ * @note 使用 `std::stringstream` 可能引入性能开销，适合非性能敏感场景。
+ * @note 函数标记为 `noexcept`，保证无异常。
+ *
+ * @example
+ *
+ * @code
+ * int i = lexical_cast<int>("123"); // 返回 123
+ * double d = lexical_cast<double>(42); // 返回 42.0
+ * std::string s = lexical_cast<std::string>(123); // 返回 "123"
+ * @endcode
  */
 template <typename T, typename S>
-T lexical_cast(const S& arg) {
-    static_assert(std::is_default_constructible_v<T>, "Target must be default constructible");
+T lexical_cast(const S& arg) noexcept {
+    std::stringstream ss;
+    ss << arg;
+    return parse_value<T, false>(ss.str());
+}
 
-    std::stringstream interpreter;
-    T                 result;
-
-    if (!(interpreter << arg) || !(interpreter >> result) || !(interpreter >> std::ws).eof()) {
-        throw bad_lexical_cast("lexical_cast failed");
-    }
-
-    return result;
+/**
+ * @brief 将源类型转换为目标类型，支持回退值。
+ *
+ * 使用 `std::stringstream` 将源类型 `S` 序列化为字符串，再通过 `parse_value` 解析为目标类型 `T`。
+ * 转换失败时返回 `static_cast<T>(fallback)`。
+ *
+ * @tparam T 目标类型。
+ * @tparam S 源类型。
+ * @tparam Fallback 回退值类型。
+ * @param[in] arg 源值。
+ * @param[in] fallback 回退值。
+ * @return T 转换结果，失败时返回 `static_cast<T>(fallback)`。
+ *
+ * @note 源类型需支持 `operator<<` 序列化，目标类型需支持 `parse_value` 解析。
+ * @note 使用 `std::stringstream` 可能引入性能开销，适合非性能敏感场景。
+ *
+ * @example
+ *
+ * @code
+ * int i = lexical_cast<int>("abc", 42); // 返回 42（回退值）
+ * double d = lexical_cast<double>("3.14", 0.0); // 返回 3.14
+ * std::string s = lexical_cast<std::string>(123, "default"); // 返回 "123"
+ * @endcode
+ */
+template <typename T, typename S, typename Fallback>
+T lexical_cast(const S& arg, Fallback&& fallback) {
+    std::stringstream ss;
+    ss << arg;
+    return parse_value<T, true>(ss.str(), static_cast<T>(std::forward<Fallback>(fallback)));
 }
 
 // 特化版本：字符串到字符串的直接转换
 template <>
-inline std::string lexical_cast<std::string, std::string>(const std::string& arg) {
+inline std::string lexical_cast<std::string, std::string>(const std::string& arg) noexcept {
     return arg;
 }
 
 // 特化版本：C风格字符串到字符串的直接转换
 template <>
-inline std::string lexical_cast<std::string, const char*>(const char* const& arg) {
+inline std::string lexical_cast<std::string, const char*>(const char* const& arg) noexcept {
     return arg;
 }
 
 // 特化版本：字符串到C风格字符串（不支持，因为不安全）
 template <>
-const char* lexical_cast<const char*, std::string>(const std::string& arg) = delete;
+const char* lexical_cast<const char*, std::string>(const std::string& arg) noexcept = delete;
 }  // namespace zmuduo
 
 #endif
