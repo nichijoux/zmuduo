@@ -138,17 +138,72 @@ class Pop3Client : NoCopyable {
     }
 
 #ifdef ZMUDUO_ENABLE_OPENSSL
+    /**
+     * @brief 创建并配置 SSL 上下文。
+     *
+     * 初始化 SSL 上下文，加载系统默认 CA 证书路径，设置对等验证回调，并禁用不安全的协议（SSLv2/SSLv3）。<br/>
+     * 若客户端已连接或上下文已存在，则失败。
+     *
+     * @retval true SSL 上下文创建和配置成功。
+     * @retval false 创建失败（已连接、上下文已存在或 OpenSSL 错误）。
+     *
+     * @note 必须在建立连接前调用，失败时记录错误日志并释放上下文。
+     * @note 验证回调记录证书错误详情，供调试使用。
+     * @note 使用 SSLv23_client_method 兼容 TLS 协议，禁用 SSLv2/SSLv3 和压缩。
+     */
     bool createSSLContext() {
         return m_client.createSSLContext();
     }
 
+    /**
+     * @brief 加载自定义客户端证书和私钥。
+     *
+     * 加载指定路径的客户端证书和私钥（PEM 格式），用于双向认证，并验证私钥与证书匹配。<br/>
+     * 若客户端已连接或未创建 SSL 上下文，则失败。
+     *
+     * @param[in] certificatePath 客户端证书文件路径（PEM 格式）。
+     * @param[in] privateKeyPath 私钥文件路径（PEM 格式）。
+     * @retval true 证书和私钥加载成功且匹配。
+     * @retval false 加载失败（已连接、无上下文、文件无效或不匹配）。
+     *
+     * @note 必须在 createSSLContext 后、连接前调用。
+     * @note 证书和私钥文件需为 PEM 格式，路径需可访问。
+     * @note 失败时释放 SSL 上下文并记录错误日志。
+     */
     bool loadCustomCertificate(const std::string& certificatePath,
                                const std::string& privateKeyPath) {
         return m_client.loadCustomCertificate(certificatePath, privateKeyPath);
     }
 
+    /**
+     * @brief 加载自定义 CA 证书或路径。
+     *
+     * 加载指定的 CA 证书文件或目录，用于验证服务器证书。若未提供 CA 文件或路径，则跳过加载。
+     * 若客户端已连接或未创建 SSL 上下文，则失败。
+     *
+     * @param[in] caFile CA 证书文件路径（PEM 格式，可为空）。
+     * @param[in] caPath CA 证书目录路径（可为空）。
+     * @retval true CA 证书加载成功或未提供参数。
+     * @retval false 加载失败（已连接、无上下文或 OpenSSL 错误）。
+     *
+     * @note 必须在 createSSLContext 后、连接前调用。
+     * @note CA 文件/目录需为 PEM 格式，路径需可访问。
+     * @note 失败时记录 OpenSSL 错误日志。
+     */
     bool loadCustomCACertificate(const std::string& caFile, const std::string& caPath) {
         return m_client.loadCustomCACertificate(caFile, caPath);
+    }
+
+    /**
+     * @brief 获取 SSL 上下文指针。
+     *
+     * 返回当前配置的 SSL 上下文，供外部检查或管理。
+     *
+     * @return SSL_CTX* SSL 上下文指针，可能为空。
+     * @note 调用者需自行检查指针有效性，不负责上下文的释放。
+     */
+    SSL_CTX* getSSLContext() const {
+        return m_client.getSSLContext();
     }
 #endif
 

@@ -118,8 +118,31 @@ class TcpServer : NoCopyable {
     }
 
 #ifdef ZMUDUO_ENABLE_OPENSSL
+    /**
+     * @brief 加载自定义服务器证书和私钥。
+     *
+     * 加载指定路径的服务器证书和私钥（PEM 格式），并验证私钥与证书匹配。<br/>
+     * 若服务器已连接或未创建 SSL 上下文，则失败。
+     *
+     * @param[in] certificatePath 客户端证书文件路径（PEM 格式）。
+     * @param[in] privateKeyPath 私钥文件路径（PEM 格式）。
+     * @retval true 证书和私钥加载成功且匹配。
+     * @retval false 加载失败（已连接、无上下文、文件无效或不匹配）。
+     *
+     * @note 必须在连接前调用。
+     * @note 证书和私钥文件需为 PEM 格式，路径需可访问。
+     * @note 失败时释放 SSL 上下文并记录错误日志。
+     */
     bool loadCertificates(const std::string& certificatePath, const std::string& privateKeyPath);
 
+    /**
+     * @brief 获取 SSL 上下文指针。
+     *
+     * 返回当前配置的 SSL 上下文，供外部检查或管理。
+     *
+     * @return SSL_CTX* SSL 上下文指针，可能为空。
+     * @note 调用者需自行检查指针有效性，不负责上下文的释放。
+     */
     SSL_CTX* getSSLContext() const {
         return m_sslContext;
     }
