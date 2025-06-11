@@ -173,7 +173,7 @@ size_t EventLoop::getQueueSize() {
 }
 
 TimerId EventLoop::runAt(Timestamp time, TimerCallback cb) {
-    return m_timerQueue->addTimer(std::move(cb), std::move(time), 0.0);
+    return m_timerQueue->addTimer(std::move(cb), time, 0.0);
 }
 
 TimerId EventLoop::runAfter(double delay, TimerCallback cb) {
