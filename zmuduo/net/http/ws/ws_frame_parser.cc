@@ -67,14 +67,16 @@ void WSFrameParser::parseHead(Buffer& buffer, bool isClient) {
 void WSFrameParser::parseLength(Buffer& buffer) {
     // 进到该函数则说明opcode一定合法
     // 解析扩展长度
-    if (m_head.isDataFrame()) {
+    if (m_head.isControlFrame()) {
+        // 控制帧
         if (m_head.payloadLength >= 126) {
-            setParseError("PING 数据长度不能超过125");
+            setParseError("控制帧（如 PING） 数据长度不能超过125");
         } else {
             m_payloadLength = m_head.payloadLength;
             m_state         = State::LENGTH_PARSED;
         }
     } else {
+        // 数据帧
         if (m_head.payloadLength == 126 && buffer.getReadableBytes() >= 2) {
             // 如果是126,则接下来2个字节长度为数据长度
             m_payloadLength = buffer.readInt16();
