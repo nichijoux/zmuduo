@@ -91,21 +91,17 @@ class SmtpClient : NoCopyable {
     void send(const EMail::Ptr& email);
 
 #ifdef ZMUDUO_ENABLE_OPENSSL
-    /**
-     * @brief 加载 SSL/TLS 证书和密钥。
-     * @param[in] certificatePath 客户端证书路径。
-     * @param[in] privateKeyPath 客户端私钥路径。
-     * @param[in] caFile CA 证书文件路径（可选）。
-     * @param[in] caPath CA 证书目录路径（可选）。
-     * @retval true 证书和密钥加载成功。
-     * @retval false 证书或密钥加载失败。
-     * @note 仅在启用 OpenSSL 时可用，用于支持 SMTPS（如端口 465）。
-     */
-    bool loadCertificates(const std::string& certificatePath,
-                          const std::string& privateKeyPath,
-                          const std::string& caFile = "",
-                          const std::string& caPath = "") {
-        return m_client.loadCertificates(certificatePath, privateKeyPath, caFile, caPath);
+    bool createSSLContext() {
+        return m_client.createSSLContext();
+    }
+
+    bool loadCustomCertificate(const std::string& certificatePath,
+                               const std::string& privateKeyPath) {
+        return m_client.loadCustomCertificate(certificatePath, privateKeyPath);
+    }
+
+    bool loadCustomCACertificate(const std::string& caFile, const std::string& caPath) {
+        return m_client.loadCustomCACertificate(caFile, caPath);
     }
 #endif
 

@@ -16,13 +16,17 @@ HttpClient::HttpClient(EventLoop* loop, const Uri& uri, std::string name)
     : HttpClient(loop, uri.createAddress(), std::move(name)) {
     assert(uri.getScheme() == "http" || uri.getScheme() == "https");
     m_path = uri.getPath();
+    m_host = uri.getHost();
+    if (!m_host.empty()) {
+        m_client.setSSLHostName(m_host);
+    }
 }
 
 HttpClient::HttpClient(EventLoop* loop, const Address::Ptr& serverAddress, std::string name)
     : m_client(loop, serverAddress, std::move(name)),
       m_host(serverAddress->toString()),
       m_path(),
-      m_connectCallback(nullptr),
+      m_reconnect(true),
       m_callbacks() {
     m_client.setConnectionCallback(
         [this](const TcpConnectionPtr& connection) { onConnection(connection); });
@@ -35,36 +39,41 @@ HttpClient::HttpClient(EventLoop* loop, const Address::Ptr& serverAddress, std::
 void HttpClient::doGet(const std::string&           path,
                        HttpResponseCallback         callback,
                        const HttpClient::HeaderMap& headers,
-                       const std::string&           body) {
-    return doRequest(HttpMethod::GET, path, std::move(callback), headers, body);
+                       const std::string&           body,
+                       uint32_t                     timeout) {
+    return doRequest(HttpMethod::GET, path, std::move(callback), headers, body, timeout);
 }
 
 void HttpClient::doPost(const std::string&           path,
                         HttpResponseCallback         callback,
                         const HttpClient::HeaderMap& headers,
-                        const std::string&           body) {
-    return doRequest(HttpMethod::POST, path, std::move(callback), headers, body);
+                        const std::string&           body,
+                        uint32_t                     timeout) {
+    return doRequest(HttpMethod::POST, path, std::move(callback), headers, body, timeout);
 }
 
 void HttpClient::doPut(const std::string&           path,
                        HttpResponseCallback         callback,
                        const HttpClient::HeaderMap& headers,
-                       const std::string&           body) {
-    return doRequest(HttpMethod::PUT, path, std::move(callback), headers, body);
+                       const std::string&           body,
+                       uint32_t                     timeout) {
+    return doRequest(HttpMethod::PUT, path, std::move(callback), headers, body, timeout);
 }
 
 void HttpClient::doDelete(const std::string&           path,
                           HttpResponseCallback         callback,
                           const HttpClient::HeaderMap& headers,
-                          const std::string&           body) {
-    return doRequest(HttpMethod::DELETE, path, std::move(callback), headers, body);
+                          const std::string&           body,
+                          uint32_t                     timeout) {
+    return doRequest(HttpMethod::DELETE, path, std::move(callback), headers, body, timeout);
 }
 
 void HttpClient::doRequest(HttpMethod                   method,
                            const std::string&           path,
                            HttpResponseCallback         callback,
                            const HttpClient::HeaderMap& headers,
-                           const std::string&           body) {
+                           const std::string&           body,
+                           uint32_t                     timeout) {
     HttpRequest request;
     // 设置方法
     request.setMethod(method);
@@ -75,10 +84,6 @@ void HttpClient::doRequest(HttpMethod                   method,
     request.setHeader("Host", m_host);
     // 设置headers
     for (const auto& [k, v] : headers) {
-        if (strcasecmp(k.c_str(), "connection") == 0) {
-            continue;
-        }
-
         if (strcasecmp(k.c_str(), "host") == 0) {
             continue;
         }
@@ -88,12 +93,19 @@ void HttpClient::doRequest(HttpMethod                   method,
     // 设置body
     request.setBody(body);
     // 实际发送请求
-    doRequest(request, std::move(callback));
+    doRequest(request, std::move(callback), timeout);
 }
 
-void HttpClient::doRequest(const HttpRequest& request, HttpResponseCallback callback) {
-    m_client.send(request.toString());
-    m_callbacks.emplace(std::move(callback));
+void HttpClient::doRequest(const HttpRequest&   request,
+                           HttpResponseCallback callback,
+                           uint32_t             timeout) {
+    ZMUDUO_LOG_WARNING << request.toString();
+    // 添加一个请求
+    m_callbacks.emplace(request, std::move(callback), timeout);
+    if (!m_client.isConnected()) {
+        // 没有连接则连接
+        m_client.connect();
+    }
 }
 
 void HttpClient::onConnection(const TcpConnectionPtr& connection) {
@@ -101,31 +113,41 @@ void HttpClient::onConnection(const TcpConnectionPtr& connection) {
                          connection->getPeerAddress()->toString().c_str(),
                          connection->isConnected() ? "UP" : "DOWN");
     if (connection->isConnected()) {
-        // 连接成功
-        if (m_connectCallback) {
-            m_connectCallback();
-        }
         connection->setContext(std::make_shared<HttpContext>());
+        // 发送请求
+        const auto& node = m_callbacks.front();
+        connection->send(std::get<0>(node).toString());
+        auto timeout = std::get<2>(node);
+        if (timeout != 0) {
+            m_timerId = std::make_unique<TimerId>(
+                m_client.getEventLoop()->runAfter(timeout, [this]() { m_client.disconnect(); }));
+        }
     } else {
         // 连接关闭
-        auto  context = std::any_cast<HttpContext::Ptr>(connection->getContext());
-        auto& parser  = context->getResponseParser();
-        if (parser.needForceFinish()) {
-            auto response = parser.getResponse();
-            if (response.getHeader("Content-Length").empty() &&
-                response.getHeader("Transfer-Encoding").empty()) {
-                parser.forceFinish();
-                // 获取回调
-                auto callback = m_callbacks.front();
-                m_callbacks.pop();
-                callback(std::make_shared<HttpResponse>(context->getResponse()));
+        if (connection->getContext().has_value()) {
+            auto  context = std::any_cast<HttpContext::Ptr>(connection->getContext());
+            auto& parser  = context->getResponseParser();
+            if (parser.needForceFinish()) {
+                auto response = parser.getResponse();
+                if (response.getHeader("Content-Length").empty() &&
+                    response.getHeader("Transfer-Encoding").empty()) {
+                    parser.forceFinish();
+                    // 获取回调
+                    auto item = m_callbacks.front();
+                    m_callbacks.pop();
+                    std::get<1>(item)(std::make_optional<HttpResponse>(context->getResponse()));
+                }
             }
         }
-        // 对于剩余的回调成功的直接清空
-        while (!m_callbacks.empty()) {
-            auto callback = m_callbacks.front();
-            m_callbacks.pop();
-            callback(nullptr);
+        if (m_reconnect && !m_callbacks.empty()) {
+            m_client.getEventLoop()->queueInLoop([this]() { m_client.connect(); });
+        } else {
+            // 对于剩余的回调成功的直接清空
+            while (!m_callbacks.empty()) {
+                auto item = m_callbacks.front();
+                m_callbacks.pop();
+                std::get<1>(item)(std::nullopt);
+            }
         }
     }
 }
@@ -133,21 +155,36 @@ void HttpClient::onConnection(const TcpConnectionPtr& connection) {
 void HttpClient::onMessage(const TcpConnectionPtr& connection,
                            Buffer&                 buffer,
                            const Timestamp&        receiveTime) {
-    ZMUDUO_LOG_FMT_DEBUG("%s received data", receiveTime.toString().data());
 needParse:
     auto context = std::any_cast<HttpContext::Ptr>(connection->getContext());
     // 解析响应
     int code = context->parseResponse(buffer);
     if (code == 1) {
+        if (m_timerId) {
+            m_client.getEventLoop()->cancel(*m_timerId);
+            m_timerId.reset();
+        }
         // 解析完成了,则从取出回调
-        auto callback = m_callbacks.front();
+        auto item = m_callbacks.front();
         m_callbacks.pop();
+        // 获取响应
         auto response = context->getResponse();
-        callback(std::make_shared<HttpResponse>(response));
+        // 发送下一个请求
+        if (!m_callbacks.empty() && !response.isClose()) {
+            m_client.send(std::get<0>(item).toString());
+            // 定时器
+            auto timeout = std::get<2>(item);
+            if (timeout != 0) {
+                m_timerId = std::make_unique<TimerId>(m_client.getEventLoop()->runAfter(
+                    timeout, [this]() { m_client.disconnect(); }));
+            }
+        }
+        // 回调
+        std::get<1>(item)(std::make_optional<HttpResponse>(response));
         // 重置context
         connection->setContext(std::make_shared<HttpContext>());
         // 是否需要关闭
-        if (response.isClose()) {
+        if (response.isClose() || m_callbacks.empty()) {
             connection->shutdown();
         } else if (buffer.getReadableBytes() > 0) {
             goto needParse;
@@ -155,15 +192,10 @@ needParse:
     } else if (code == -1) {
         // 存在错误
         ZMUDUO_LOG_ERROR << context->getResponseParser().getError();
-        // 有错误,则清除所有的response
-        while (!m_callbacks.empty()) {
-            auto callback = m_callbacks.front();
-            m_callbacks.pop();
-            callback(nullptr);
-        }
-        connection->shutdown();
         // 重置context
         connection->setContext(std::make_shared<HttpContext>());
+        // 关闭连接,后面会自己移除队列
+        connection->shutdown();
     }
 }
 

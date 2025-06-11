@@ -52,9 +52,7 @@ void TcpServer::setThreadNum(int num) {
 
 #ifdef ZMUDUO_ENABLE_OPENSSL
 bool TcpServer::loadCertificates(const std::string& certificatePath,
-                                 const std::string& privateKeyPath,
-                                 const std::string& caFile /* = "" */,
-                                 const std::string& caPath /* = "" */) {
+                                 const std::string& privateKeyPath) {
     if (m_started || m_sslContext) {
         ZMUDUO_LOG_FMT_ERROR("tcpServer[%s] has started", m_name.c_str());
         return false;
@@ -85,16 +83,8 @@ bool TcpServer::loadCertificates(const std::string& certificatePath,
     // 检查证书和私钥是否匹配
     CHECK_SSL_ERROR(!SSL_CTX_check_private_key(m_sslContext), "error in SSL_CTX_check_private_key");
 
-    // 加载 CA 文件或路径（可选）
-    if (!caFile.empty() || !caPath.empty()) {
-        CHECK_SSL_ERROR(
-            SSL_CTX_load_verify_locations(m_sslContext, caFile.empty() ? nullptr : caFile.c_str(),
-                                          caPath.empty() ? nullptr : caPath.c_str()) <= 0,
-            "Failed to load CA certificates: %s", ERR_error_string(ERR_get_error(), nullptr));
-        // 设置验证选项（可选）
-        SSL_CTX_set_verify(m_sslContext, SSL_VERIFY_PEER, nullptr);
-        SSL_CTX_set_verify_depth(m_sslContext, 4);
-    }
+    // 设置验证选项
+    SSL_CTX_set_verify(m_sslContext, SSL_VERIFY_PEER, nullptr);
 
 #    undef CHECK_SSL_ERROR
     return true;

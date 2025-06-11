@@ -66,17 +66,58 @@ TcpClient::~TcpClient() {
 }
 
 #ifdef ZMUDUO_ENABLE_OPENSSL
-bool TcpClient::loadCertificates(const std::string& certificatePath,
-                                 const std::string& privateKeyPath,
-                                 const std::string& caFile /* = "" */,
-                                 const std::string& caPath /* = "" */) {
+bool TcpClient::createSSLContext() {
     if (m_connected || m_sslContext) {
-        ZMUDUO_LOG_FMT_ERROR("tcpServer[%s] has started", m_name.c_str());
+        ZMUDUO_LOG_FMT_ERROR("tcpClient[%s] has started", m_name.c_str());
         return false;
     }
-    ZMUDUO_LOG_INFO << "Try to set SSL";
-    // 注意是client方法
+
     m_sslContext = SSL_CTX_new(SSLv23_client_method());
+    if (!m_sslContext) {
+        ZMUDUO_LOG_ERROR << "Failed to create SSL context";
+        return false;
+    }
+
+    // 加载系统默认CA证书
+    if (!SSL_CTX_set_default_verify_paths(m_sslContext)) {
+        ZMUDUO_LOG_ERROR << "Failed to set default verify paths";
+        SSL_CTX_free(m_sslContext);
+        m_sslContext = nullptr;
+        return false;
+    }
+
+    // 配置验证选项
+    SSL_CTX_set_verify(m_sslContext, SSL_VERIFY_PEER, [](int preverify_ok, X509_STORE_CTX* ctx) {
+        if (!preverify_ok) {
+            char  buffer[256];
+            X509* cert = X509_STORE_CTX_get_current_cert(ctx);
+            int   err  = X509_STORE_CTX_get_error(ctx);
+
+            ZMUDUO_LOG_ERROR << "证书验证失败: " << X509_verify_cert_error_string(err);
+            X509_NAME_oneline(X509_get_subject_name(cert), buffer, sizeof(buffer));
+            ZMUDUO_LOG_DEBUG << "证书主题: " << buffer;
+        }
+        return preverify_ok;
+    });
+
+    // 安全配置
+    SSL_CTX_set_options(m_sslContext, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION |
+                                          SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
+
+    return true;
+}
+
+bool TcpClient::loadCustomCertificate(const std::string& certificatePath,
+                                      const std::string& privateKeyPath) {
+    if (m_connected) {
+        ZMUDUO_LOG_FMT_ERROR("tcpClient[%s] has started", m_name.c_str());
+        return false;
+    }
+    if (!m_sslContext) {
+        ZMUDUO_LOG_FMT_ERROR("tcpClient[%s] should create ssl context first", m_name.c_str());
+        return false;
+    }
+    ZMUDUO_LOG_INFO << "Loading custom certificate and private key";
 #    define CHECK_SSL_ERROR(expression, message, ...)                                              \
         do {                                                                                       \
             if (expression) {                                                                      \
@@ -86,31 +127,37 @@ bool TcpClient::loadCertificates(const std::string& certificatePath,
                 return false;                                                                      \
             }                                                                                      \
         } while (0)
-
-    CHECK_SSL_ERROR(m_sslContext == nullptr, "err in SSL_CTX_new");
-
-    // 加载服务端证书
+    // 加载客户端证书和私钥（双向认证时需要）
     CHECK_SSL_ERROR(SSL_CTX_use_certificate_chain_file(m_sslContext, certificatePath.c_str()) <= 0,
                     "load %s error in SSL_CTX_use_certificate_chain_file", certificatePath.c_str());
-
-    // 加载私钥
     CHECK_SSL_ERROR(
         SSL_CTX_use_PrivateKey_file(m_sslContext, privateKeyPath.c_str(), SSL_FILETYPE_PEM) <= 0,
         "load %s error in SSL_CTX_use_PrivateKey_file", privateKeyPath.c_str());
-
-    // 检查证书和私钥是否匹配
+    // 验证私钥和证书是否匹配
     CHECK_SSL_ERROR(!SSL_CTX_check_private_key(m_sslContext), "error in SSL_CTX_check_private_key");
 
-    // 加载 CA 文件或路径（可选）
-    if (!caFile.empty() || !caPath.empty()) {
-        CHECK_SSL_ERROR(
-            SSL_CTX_load_verify_locations(m_sslContext, caFile.empty() ? nullptr : caFile.c_str(),
-                                          caPath.empty() ? nullptr : caPath.c_str()) <= 0,
-            "Failed to load CA certificates: %s", ERR_error_string(ERR_get_error(), nullptr));
-        // 设置验证选项（可选）
-        SSL_CTX_set_verify(m_sslContext, SSL_VERIFY_PEER, nullptr);
-        SSL_CTX_set_verify_depth(m_sslContext, 4);
+    return true;
+}
+
+bool TcpClient::loadCustomCACertificate(const std::string& caFile, const std::string& caPath) {
+    if (m_connected) {
+        ZMUDUO_LOG_FMT_ERROR("tcpClient[%s] has started", m_name.c_str());
+        return false;
     }
+    if (!m_sslContext) {
+        ZMUDUO_LOG_FMT_ERROR("tcpClient[%s] should create ssl context first", m_name.c_str());
+        return false;
+    }
+    if (caFile.empty() && caPath.empty()) {
+        ZMUDUO_LOG_INFO << "No CA file or path provided, skipping CA certificate loading";
+        return true;
+    }
+    // 实际加载CA证书
+    ZMUDUO_LOG_INFO << "Loading CA certificates";
+    CHECK_SSL_ERROR(
+        SSL_CTX_load_verify_locations(m_sslContext, caFile.empty() ? nullptr : caFile.c_str(),
+                                      caPath.empty() ? nullptr : caPath.c_str()) <= 0,
+        "Failed to load CA certificates: %s", ERR_error_string(ERR_get_error(), nullptr));
 
 #    undef CHECK_SSL_ERROR
     return true;
@@ -131,6 +178,7 @@ void TcpClient::stop() {
 
 void TcpClient::disconnect() {
     m_connected = false;
+    m_connector->disconnect();
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         if (m_connection) {
@@ -157,6 +205,9 @@ void TcpClient::newConnection(int socketFD) {
         ssl = SSL_new(m_sslContext);
         SSL_set_fd(ssl, socketFD);
         SSL_set_connect_state(ssl);
+        if (!m_sslHostname.empty()) {
+            SSL_set_tlsext_host_name(ssl, m_sslHostname.c_str());
+        }
     }
     // 创建tcp连接
     TcpConnectionPtr tcpConnection = std::make_shared<TcpConnection>(

@@ -144,6 +144,20 @@ class WSClient : NoCopyable {
         m_messageCallback = std::move(callback);
     }
 
+#ifdef ZMUDUO_ENABLE_OPENSSL
+    bool createSSLContext() {
+        return m_client.createSSLContext();
+    }
+
+    bool loadCustomCertificate(const std::string& certificatePath,
+                               const std::string& privateKeyPath) {
+        return m_client.loadCustomCertificate(certificatePath, privateKeyPath);
+    }
+
+    bool loadCustomCACertificate(const std::string& caFile, const std::string& caPath) {
+        return m_client.loadCustomCACertificate(caFile, caPath);
+    }
+#endif
   private:
     /**
      * @brief 发起 WebSocket 握手请求。

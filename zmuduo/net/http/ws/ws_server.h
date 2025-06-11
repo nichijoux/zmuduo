@@ -82,9 +82,23 @@ class WSServer : NoCopyable {
         return m_dispatcher;
     }
 
+    /**
+     * @brief 获取当前支持的子协议
+     * @return 当前服务器支持的子协议列表
+     */
     std::vector<WSSubProtocol::Ptr>& getSubProtocols() {
         return m_subProtocols;
     }
+
+#ifdef ZMUDUO_ENABLE_OPENSSL
+    bool loadCertificates(const std::string& certificatePath, const std::string& privateKeyPath) {
+        return m_server.loadCertificates(certificatePath, privateKeyPath);
+    }
+
+    SSL_CTX* getSSLContext() const {
+        return m_server.getSSLContext();
+    }
+#endif
 
   private:
     /**

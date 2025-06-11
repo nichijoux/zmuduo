@@ -100,6 +100,16 @@ class HttpServer : NoCopyable {
         m_dispatcher = v;
     }
 
+#ifdef ZMUDUO_ENABLE_OPENSSL
+    bool loadCertificates(const std::string& certificatePath, const std::string& privateKeyPath) {
+        return m_server.loadCertificates(certificatePath, privateKeyPath);
+    }
+
+    SSL_CTX* getSSLContext() const {
+        return m_server.getSSLContext();
+    }
+#endif
+
     /**
      * @brief 启动服务器。
      * @note 开始监听连接，记录启动日志。

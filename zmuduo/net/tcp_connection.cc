@@ -164,6 +164,32 @@ void TcpConnection::continueSSLHandshake() {
     if (ret == 1) {
         m_sslState = SSLState::CONNECTED;
         ZMUDUO_LOG_FMT_IMPORTANT("SSL handshake success for %s", m_name.c_str());
+        if (!SSL_is_server(m_ssl)) {
+            // 客户端验证服务器证书
+            X509* cert = SSL_get_peer_certificate(m_ssl);
+            if (cert) {
+                char* subject = X509_NAME_oneline(X509_get_subject_name(cert), nullptr, 0);
+                char* issuer  = X509_NAME_oneline(X509_get_issuer_name(cert), nullptr, 0);
+
+                ZMUDUO_LOG_DEBUG << "服务器证书信息:";
+                ZMUDUO_LOG_DEBUG << "  主题: " << subject;
+                ZMUDUO_LOG_DEBUG << "  颁发者: " << issuer;
+
+                OPENSSL_free(subject);
+                OPENSSL_free(issuer);
+                X509_free(cert);
+
+                long verify_result = SSL_get_verify_result(m_ssl);
+                if (verify_result != X509_V_OK) {
+                    ZMUDUO_LOG_ERROR << "证书验证失败: "
+                                     << X509_verify_cert_error_string(verify_result);
+                    handleClose();
+                }
+            } else {
+                ZMUDUO_LOG_ERROR << "未收到服务器证书";
+                handleClose();
+            }
+        }
         // SSL完成连接建立，执行回调
         if (m_connectionCallback) {
             m_connectionCallback(shared_from_this());

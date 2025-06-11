@@ -11,6 +11,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <utility>
 
 #ifdef ZMUDUO_ENABLE_OPENSSL
 #    include <openssl/ssl.h>
@@ -64,20 +65,20 @@ class TcpClient : NoCopyable {
     ~TcpClient();
 
 #ifdef ZMUDUO_ENABLE_OPENSSL
-    /**
-     * @brief 加载 SSL 证书和私钥。
-     * @param[in] certificatePath 证书文件路径。
-     * @param[in] privateKeyPath 私钥文件路径。
-     * @param[in] caFile CA 证书文件路径（可选）。
-     * @param[in] caPath CA 证书目录路径（可选）。
-     * @retval true 成功加载证书和私钥。
-     * @retval false 加载证书或私钥失败，或客户端已连接。
-     * @note 必须在客户端连接前调用。
-     */
-    bool loadCertificates(const std::string& certificatePath,
-                          const std::string& privateKeyPath,
-                          const std::string& caFile = "",
-                          const std::string& caPath = "");
+    bool createSSLContext();
+
+    bool loadCustomCertificate(const std::string& certificatePath,
+                               const std::string& privateKeyPath);
+
+    bool loadCustomCACertificate(const std::string& caFile, const std::string& caPath);
+
+    void setSSLHostName(std::string hostname) {
+        m_sslHostname = std::move(hostname);
+    }
+
+    SSL_CTX* getSSLContext() const {
+        return m_sslContext;
+    }
 #endif
 
     /**
@@ -112,6 +113,14 @@ class TcpClient : NoCopyable {
      */
     const std::string& getName() const {
         return m_name;
+    }
+
+    /**
+     * @brief 查询客户端是否连接服务器成功
+     * @return 是否连接成功
+     */
+    bool isConnected() const {
+        return m_connected;
     }
 
     /**
@@ -213,7 +222,8 @@ class TcpClient : NoCopyable {
     std::mutex                  m_mutex;                  ///< 保护 m_connection 的互斥锁
     TcpConnectionPtr            m_connection;             ///< 当前连接
 #ifdef ZMUDUO_ENABLE_OPENSSL
-    SSL_CTX* m_sslContext;  ///< SSL 上下文
+    SSL_CTX*    m_sslContext;   ///< SSL 上下文
+    std::string m_sslHostname;  ///< SSL服务器主机名,用于SNI和证书验证
 #endif
 };
 }  // namespace zmuduo::net

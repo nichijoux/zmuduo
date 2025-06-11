@@ -118,20 +118,11 @@ class TcpServer : NoCopyable {
     }
 
 #ifdef ZMUDUO_ENABLE_OPENSSL
-    /**
-     * @brief 加载 SSL 证书和私钥。
-     * @param[in] certificatePath 证书文件路径。
-     * @param[in] privateKeyPath 私钥文件路径。
-     * @param[in] caFile CA 证书文件路径（可选）。
-     * @param[in] caPath CA 证书目录路径（可选）。
-     * @retval true 成功加载证书和私钥。
-     * @retval false 加载证书或私钥失败，或服务器已启动。
-     * @note 必须在服务器启动前调用。
-     */
-    bool loadCertificates(const std::string& certificatePath,
-                          const std::string& privateKeyPath,
-                          const std::string& caFile = "",
-                          const std::string& caPath = "");
+    bool loadCertificates(const std::string& certificatePath, const std::string& privateKeyPath);
+
+    SSL_CTX* getSSLContext() const {
+        return m_sslContext;
+    }
 #endif
 
     /**

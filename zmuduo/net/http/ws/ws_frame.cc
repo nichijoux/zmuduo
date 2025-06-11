@@ -73,8 +73,8 @@ void handleWSFrameClose(const TcpConnectionPtr& connection,
     // 回复一个CLOSE帧（带回原始状态码与原因），掩码方向取决于消息来源
     connection->send(
         WSFrameMessage(WSFrameHead::CLOSE, message.m_payload).serialize(!isFromClient));
-    // 强制关闭底层TCP连接，释放资源
-    connection->shutdown();
+    // 强制关闭底层TCP连接，释放资源，并且不再接收消息
+    connection->forceClose();
 }
 
 void handleWSFrameControl(const TcpConnectionPtr& connection,

@@ -14,6 +14,7 @@ WSClient::WSClient(EventLoop* loop, const Uri& uri, std::string name)
     : WSClient(loop, uri.createAddress(), std::move(name)) {
     assert(uri.getScheme() == "ws" || uri.getScheme() == "wss");
     m_path = uri.getPath();
+    m_client.setSSLHostName(uri.getHost());
 }
 
 WSClient::WSClient(EventLoop* loop, const Address::Ptr& serverAddress, std::string name)
@@ -141,12 +142,14 @@ void WSClient::onMessage(const TcpConnectionPtr& connection,
                 return;
             }
             // todo:获取子协议,暂时一个子协议都不支持
-            if (::strcasecmp(response.getHeader("Sec-WebSocket-Protocol").c_str(),
-                             m_subProtocol->getName().c_str()) != 0) {
-                ZMUDUO_LOG_ERROR << m_client.getName() << " not support the sub protocol: "
-                                 << response.getHeader("Sec-WebSocket-Protocol");
-                doWhenError();
-                return;
+            if (m_subProtocol) {
+                if (::strcasecmp(response.getHeader("Sec-WebSocket-Protocol").c_str(),
+                                 m_subProtocol->getName().c_str()) != 0) {
+                    ZMUDUO_LOG_ERROR << m_client.getName() << " not support the sub protocol: "
+                                     << response.getHeader("Sec-WebSocket-Protocol");
+                    doWhenError();
+                    return;
+                }
             }
             // 检验http中的accept是否合法
             auto acceptKey = response.getHeader("Sec-WebSocket-Accept");

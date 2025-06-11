@@ -38,6 +38,7 @@ Pop3Client::Pop3Client(EventLoop* loop, const Uri& uri, bool useApop, std::strin
     assert(!m_username.empty());
     assert(!m_password.empty());
     assert(uri.getScheme() == "pop3");
+    m_client.setSSLHostName(uri.getHost());
 }
 
 Pop3Client::Pop3Client(EventLoop*          loop,

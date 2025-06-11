@@ -11,14 +11,20 @@ int main() {
     EventLoop    loop;
     Address::Ptr address = IPv4Address::Create("127.0.0.1", 8000);
     WSServer     server(&loop, address, "name");
+    // 加载证书
+    if (server.loadCertificates("cacert.pem", "privkey.pem")) {
+        ZMUDUO_LOG_FMT_IMPORTANT("加载证书成功");
+    } else {
+        ZMUDUO_LOG_FMT_IMPORTANT("加载证书失败");
+    }
     server.getServletDispatcher().addExactServlet("/echo", [](const WSFrameMessage&   message,
-                                                          const TcpConnectionPtr& connection) {
+                                                              const TcpConnectionPtr& connection) {
         ZMUDUO_LOG_INFO << "received: " << message.m_payload;
-        connection->send(
-            WSFrameMessage(WSFrameHead::TEXT_FRAME, "You said:" + message.m_payload).serialize(false));
+        connection->send(WSFrameMessage(WSFrameHead::TEXT_FRAME, "You said:" + message.m_payload)
+                             .serialize(false));
     });
     server.getServletDispatcher().addExactServlet("/", [](const WSFrameMessage&   message,
-                                                              const TcpConnectionPtr& connection) {
+                                                          const TcpConnectionPtr& connection) {
         connection->send(WSFrameMessage::MakeCloseFrame(WSCloseCode::NORMAL_CLOSURE, "我就想关闭")
                              .serialize(false));
     });

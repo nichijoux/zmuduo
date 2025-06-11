@@ -13,7 +13,7 @@ int main() {
     EventLoop loop;
     auto      addr = IPv4Address::Create("127.0.0.1", 8000);
     TcpClient client(&loop, addr, "SSLClient");
-    if (client.loadCertificates("cacert.pem", "privkey.pem")) {
+    if (client.createSSLContext() && client.loadCustomCACertificate("cacert.pem", "")) {
         ZMUDUO_LOG_FMT_IMPORTANT("加载证书成功");
     } else {
         ZMUDUO_LOG_FMT_IMPORTANT("加载证书失败");
