@@ -147,7 +147,8 @@ void RpcServer::registerToRegistry(const std::string& serviceName) {
                 // eventLoop必须创建一个定时器,发送心跳信息
                 ZMUDUO_LOG_DEBUG << serviceName << "'s heartbeat interval is "
                                  << message.register_res().heartbeat_interval();
-                auto timerId = m_eventLoop->runEvery(
+                // 注册timerId
+                m_timerIds[message.register_res().assigned_id()] = m_eventLoop->runEvery(
                     message.register_res().heartbeat_interval(),
                     [id = message.register_res().assigned_id(), connection]() {
                         RpcMessage heartMessage;
@@ -158,8 +159,6 @@ void RpcServer::registerToRegistry(const std::string& serviceName) {
                         // 发送消息
                         RpcCodec::send(connection, heartMessage);
                     });
-                // 注册timerId
-                m_timerIds[message.register_res().assigned_id()] = timerId;
             }
             // 主动关闭连接并回调
             // todo:移除关闭,在超时未接收回调中关闭
