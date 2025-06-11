@@ -69,9 +69,21 @@ void WSClient::doHandShake() {
     request.setHeader("Connection", "Upgrade");
     request.setHeader("Sec-WebSocket-Version", "13");
     request.setHeader("Sec-WebSocket-Key", m_key);
+    // 子协议
+    if (!m_subProtocols.empty()) {
+        std::ostringstream oss;
+        bool               first = true;
+        for (const auto& subProtocol : m_subProtocols) {
+            if (!first) {
+                oss << ", ";
+            }
+            first = false;
+            oss << subProtocol->getName();
+        }
+        request.setHeader("Sec-WebSocket-Protocol", oss.str());
+    }
     // 发送http请求
     m_state = State::HTTP;
-    ZMUDUO_LOG_DEBUG << "发送请求:\n" << request.toString();
     m_client.send(request.toString());
 }
 
@@ -141,15 +153,21 @@ void WSClient::onMessage(const TcpConnectionPtr& connection,
                 doWhenError();
                 return;
             }
-            // todo:获取子协议,暂时一个子协议都不支持
-            if (m_subProtocol) {
-                if (::strcasecmp(response.getHeader("Sec-WebSocket-Protocol").c_str(),
-                                 m_subProtocol->getName().c_str()) != 0) {
-                    ZMUDUO_LOG_ERROR << m_client.getName() << " not support the sub protocol: "
-                                     << response.getHeader("Sec-WebSocket-Protocol");
-                    doWhenError();
-                    return;
-                }
+            // 服务器使用了子协议，接下来看客户端是否支持
+            auto it = std::find_if(m_subProtocols.begin(), m_subProtocols.end(),
+                                   [protocol = response.getHeader("Sec-WebSocket-Protocol")](
+                                       const WSSubProtocol::Ptr& subProtocol) {
+                                       return subProtocol && protocol == subProtocol->getName();
+                                   });
+            if (it != m_subProtocols.end()) {
+                // todo:选中了子协议
+
+            } else if (!response.getHeader("Sec-WebSocket-Protocol").empty()) {
+                // 没有对应的子协议
+                ZMUDUO_LOG_ERROR << m_client.getName() << " not support the sub protocol: "
+                                 << response.getHeader("Sec-WebSocket-Protocol");
+                doWhenError();
+                return;
             }
             // 检验http中的accept是否合法
             auto acceptKey = response.getHeader("Sec-WebSocket-Accept");

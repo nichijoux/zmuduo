@@ -10,6 +10,7 @@
 #include "zmuduo/net/http/ws/ws_frame_parser.h"
 #include "zmuduo/net/tcp_client.h"
 #include "zmuduo/net/uri.h"
+#include <set>
 
 namespace zmuduo::net::http::ws {
 /**
@@ -158,6 +159,17 @@ class WSClient : NoCopyable {
         return m_client.loadCustomCACertificate(caFile, caPath);
     }
 #endif
+
+    /**
+     * @brief 添加子协议
+     * @param subProtocol websocket子协议的一个实现
+     */
+    void addSubProtocol(const WSSubProtocol::Ptr& subProtocol) {
+        if (subProtocol) {
+            m_subProtocols.insert(subProtocol);
+        }
+    }
+
   private:
     /**
      * @brief 发起 WebSocket 握手请求。
@@ -195,14 +207,21 @@ class WSClient : NoCopyable {
     onMessage(const TcpConnectionPtr& connection, Buffer& buffer, const Timestamp& receiveTime);
 
   private:
-    State                m_state;               ///< 当前连接状态
-    TcpClient            m_client;              ///< tcp客户端
-    std::string          m_key;                 ///< 用于tcp通信的key
-    std::string          m_path;                ///< 请求地址
-    WSSubProtocol::Ptr   m_subProtocol;         ///< 所使用的子协议,默认为nullptr
-    WSConnectionCallback m_connectionCallback;  ///< ws连接的回调
-    WSMessageCallback    m_messageCallback;     ///< ws收到消息的回调
-    WSFrameParser        m_parser;              ///< websocket数据帧的解析器
+    struct ProtocolCompare {
+        bool operator()(const WSSubProtocol::Ptr& a, const WSSubProtocol::Ptr& b) const {
+            return a->getName() < b->getName();
+        }
+    };
+
+  private:
+    State                                         m_state;         ///< 当前连接状态
+    TcpClient                                     m_client;        ///< tcp客户端
+    std::string                                   m_key;           ///< 用于tcp通信的key
+    std::string                                   m_path;          ///< 请求地址
+    std::set<WSSubProtocol::Ptr, ProtocolCompare> m_subProtocols;  ///< 所支持使用的子协议
+    WSConnectionCallback                          m_connectionCallback;  ///< ws连接的回调
+    WSMessageCallback                             m_messageCallback;  ///< ws收到消息的回调
+    WSFrameParser                                 m_parser;  ///< websocket数据帧的解析器
 };
 }  // namespace zmuduo::net::http::ws
 
