@@ -2,12 +2,12 @@
 #include "zmuduo/base/logger.h"
 #include "zmuduo/net/channel.h"
 #include "zmuduo/net/event_loop.h"
+#include "zmuduo/net/socket.h"
 #include "zmuduo/net/socket_options.h"
 #include <cassert>
 #include <memory>
 #include <unistd.h>
 #include <utility>
-#include "zmuduo/net/socket.h"
 
 namespace zmuduo::net {
 Connector::Connector(EventLoop* loop, Address::Ptr serverAddress)
@@ -29,9 +29,14 @@ void Connector::start() {
 }
 
 void Connector::restart() {
-    m_state        = State::CONNECTING;
+    m_state        = State::DISCONNECTED;
     m_retryDelayMs = S_INIT_RETRY_DELAY_MS;
     start();
+}
+
+void Connector::disconnect() {
+    m_connect = false;
+    m_state   = State::DISCONNECTED;
 }
 
 void Connector::stop() {

@@ -76,6 +76,11 @@ class Connector : NoCopyable, public std::enable_shared_from_this<Connector> {
     void restart();
 
     /**
+     * @brief 断开连接,然后等待重新连接
+     */
+    void disconnect();
+
+    /**
      * @brief 停止连接流程，清理资源并取消重试。
      * @note 该方法会在事件循环线程中异步执行 stopInLoop。
      */
