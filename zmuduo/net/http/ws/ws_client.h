@@ -220,9 +220,9 @@ class WSClient : NoCopyable {
      * @brief 添加客户端支持的子协议
      * @param[in] subProtocol websocket子协议的一个实现
      */
-    void addSubProtocol(const WSSubProtocol::Ptr& subProtocol) {
+    void addSupportSubProtocol(const WSSubProtocol::Ptr& subProtocol) {
         if (subProtocol) {
-            m_subProtocols.insert(subProtocol);
+            m_supportProtocols.insert(subProtocol);
         }
     }
 
@@ -263,14 +263,15 @@ class WSClient : NoCopyable {
     onMessage(const TcpConnectionPtr& connection, Buffer& buffer, const Timestamp& receiveTime);
 
   private:
-    State       m_state;                                                ///< 当前连接状态
-    TcpClient   m_client;                                               ///< tcp客户端
-    std::string m_key;                                                  ///< 用于tcp通信的key
-    std::string m_path;                                                 ///< 请求地址
-    std::set<WSSubProtocol::Ptr, WSSubProtocolCompare> m_subProtocols;  ///< 所支持使用的子协议
-    WSConnectionCallback m_connectionCallback;                          ///< ws连接的回调
-    WSMessageCallback    m_messageCallback;                             ///< ws收到消息的回调
-    WSFrameParser        m_parser;  ///< websocket数据帧的解析器
+    State       m_state;   ///< 当前连接状态
+    TcpClient   m_client;  ///< tcp客户端
+    std::string m_key;     ///< 用于tcp通信的key
+    std::string m_path;    ///< 请求地址
+    std::set<WSSubProtocol::Ptr, WSSubProtocolCompare> m_supportProtocols;  ///< 所支持使用的子协议
+    WSSubProtocol::Ptr   m_useProtocol;         ///< 当前选择的子协议
+    WSConnectionCallback m_connectionCallback;  ///< ws连接的回调
+    WSMessageCallback    m_messageCallback;     ///< ws收到消息的回调
+    WSFrameParser        m_parser;              ///< websocket数据帧的解析器
 };
 }  // namespace zmuduo::net::http::ws
 

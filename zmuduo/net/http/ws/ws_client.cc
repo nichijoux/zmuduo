@@ -70,10 +70,10 @@ void WSClient::doHandShake() {
     request.setHeader("Sec-WebSocket-Version", "13");
     request.setHeader("Sec-WebSocket-Key", m_key);
     // 子协议
-    if (!m_subProtocols.empty()) {
+    if (!m_supportProtocols.empty()) {
         std::ostringstream oss;
         bool               first = true;
-        for (const auto& subProtocol : m_subProtocols) {
+        for (const auto& subProtocol : m_supportProtocols) {
             if (!first) {
                 oss << ", ";
             }
@@ -108,6 +108,7 @@ void WSClient::onConnection(const TcpConnectionPtr& connection) {
         ZMUDUO_LOG_FMT_DEBUG("[WSClient:%s] is DOWN", m_client.getName().data());
         // 断开连接
         disconnect();
+        m_useProtocol.reset();
         m_connectionCallback(false);
     }
 }
@@ -120,17 +121,20 @@ void WSClient::onMessage(const TcpConnectionPtr& connection,
     needParse:
         int code = m_parser.parse(buffer, false);
         if (code == 1) {
+            auto& wsFrame = m_parser.getWSFrameMessage();
+            // 设置解析到的子协议
+            const_cast<WSFrameMessage&>(wsFrame).m_subProtocol = m_useProtocol;
             // 解析到了一个帧
-            if (m_parser.getWSFrameMessage().isControlFrame()) {
+            if (wsFrame.isControlFrame()) {
                 // 控制帧
-                handleWSFrameControl(connection, m_parser.getWSFrameMessage(), false);
+                handleWSFrameControl(connection, wsFrame, false);
                 // CLOSE帧需要断开连接
-                if (m_parser.getWSFrameMessage().m_opcode == WSFrameHead::CLOSE) {
+                if (wsFrame.m_opcode == WSFrameHead::CLOSE) {
                     m_state = State::NONE;
                 }
             } else if (m_messageCallback) {
                 // 数据帧且有回调
-                m_messageCallback(connection, m_parser.getWSFrameMessage());
+                m_messageCallback(connection, wsFrame);
             }
             // 重置websocket帧解析器
             m_parser.reset();
@@ -154,14 +158,14 @@ void WSClient::onMessage(const TcpConnectionPtr& connection,
                 return;
             }
             // 服务器使用了子协议，接下来看客户端是否支持
-            auto it = std::find_if(m_subProtocols.begin(), m_subProtocols.end(),
+            auto it = std::find_if(m_supportProtocols.begin(), m_supportProtocols.end(),
                                    [protocol = response.getHeader("Sec-WebSocket-Protocol")](
                                        const WSSubProtocol::Ptr& subProtocol) {
                                        return subProtocol && protocol == subProtocol->getName();
                                    });
-            if (it != m_subProtocols.end()) {
-                // todo:选中了子协议
-
+            if (it != m_supportProtocols.end()) {
+                // 选中了子协议
+                m_useProtocol = *it;
             } else if (!response.getHeader("Sec-WebSocket-Protocol").empty()) {
                 // 没有对应的子协议
                 ZMUDUO_LOG_ERROR << m_client.getName() << " not support the sub protocol: "

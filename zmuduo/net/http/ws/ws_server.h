@@ -94,7 +94,7 @@ class WSServer : NoCopyable {
      * @brief 添加服务器支持的子协议
      * @param[in] subProtocol websocket子协议的一个实现
      */
-    void addSubProtocol(const WSSubProtocol::Ptr& subProtocol) {
+    void addSupportSubProtocol(const WSSubProtocol::Ptr& subProtocol) {
         if (subProtocol) {
             m_subProtocols.insert(subProtocol);
         }
@@ -184,8 +184,9 @@ class WSServer : NoCopyable {
     };
     TcpServer         m_server;      ///< 底层 TCP 服务器
     ServletDispatcher m_dispatcher;  ///< Servlet 分发器
-    std::unordered_map<TcpConnection*, std::tuple<State, std::string, WSFrameParser::Ptr>>
-        m_connections;  ///< 连接状态表（状态、路径、解析器）
+    std::unordered_map<TcpConnection*,
+                       std::tuple<State, std::string, WSFrameParser::Ptr, WSSubProtocol::Ptr>>
+        m_connections;  ///< 连接状态表（状态、路径、解析器、使用的子协议）
     std::set<WSSubProtocol::Ptr, WSSubProtocolCompare> m_subProtocols;  ///< 支持的子协议列表
 };
 }  // namespace zmuduo::net::http::ws

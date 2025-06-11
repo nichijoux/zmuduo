@@ -32,7 +32,8 @@ void WSServer::onConnection(const TcpConnectionPtr& connection) {
             ZMUDUO_LOG_ERROR << "something error, [" << it->getName() << "] exist";
             return;
         }
-        m_connections[it] = std::make_tuple(State::TCP, "/", std::make_shared<WSFrameParser>());
+        m_connections[it] =
+            std::make_tuple(State::TCP, "/", std::make_shared<WSFrameParser>(), nullptr);
         connection->setContext(std::make_shared<HttpContext>());
     } else {
         ZMUDUO_LOG_DEBUG << "[WSServer] Connection DOWN : "
@@ -104,6 +105,7 @@ void WSServer::httpHandShake(const TcpConnectionPtr& connection, const HttpReque
         if (protocol) {
             // 成功选择了一个子协议
             response.setHeader("Sec-WebSocket-Protocol", protocol->getName());
+            std::get<3>(m_connections[it]) = protocol;
         } else {
             ZMUDUO_LOG_ERROR << m_server.getName() << " not support the sub protocol: "
                              << request.getHeader("Sec-WebSocket-Protocol");
@@ -128,10 +130,7 @@ void WSServer::httpHandShake(const TcpConnectionPtr& connection, const HttpReque
     // 成功升级为websocket,将其加入到集合中
     std::get<0>(m_connections[it]) = State::WEBSOCKET;
     std::get<1>(m_connections[it]) = request.getPath();
-    ZMUDUO_LOG_DEBUG << "receive http request:\n" << request;
     // 发送消息
-    auto s = response.toString();
-    ZMUDUO_LOG_DEBUG << "send http response:\n" << response;
     connection->send(response.toString());
 }
 
@@ -143,12 +142,15 @@ needParse:
     // 解析数据
     int code = parser->parse(buffer, true);
     if (code == 1) {
-        if (parser->getWSFrameMessage().isControlFrame()) {
+        auto& wsFrame = parser->getWSFrameMessage();
+        // 设置选择的子协议
+        const_cast<WSFrameMessage&>(wsFrame).m_subProtocol = std::get<3>(item);
+        if (wsFrame.isControlFrame()) {
             // 使用onWSFrameControl接管控制帧率
-            handleWSFrameControl(connection, parser->getWSFrameMessage(), true);
+            handleWSFrameControl(connection, wsFrame, true);
         } else {
             // 解析成功
-            m_dispatcher.handle(std::get<1>(item), parser->getWSFrameMessage(), connection);
+            m_dispatcher.handle(std::get<1>(item), wsFrame, connection);
         }
         // 重置解析器
         std::get<2>(item) = std::make_shared<WSFrameParser>();

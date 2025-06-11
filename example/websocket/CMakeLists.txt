@@ -1,10 +1,10 @@
 file(COPY cacert.pem DESTINATION ${CMAKE_BINARY_DIR}/example/websocket)
 file(COPY privkey.pem DESTINATION ${CMAKE_BINARY_DIR}/example/websocket)
 
-add_executable(ws_server server.cc)
+add_executable(ws_server server.cc json.hpp)
 
 target_link_libraries(ws_server zmuduo_ws)
 
-add_executable(ws_client client.cc)
+add_executable(ws_client client.cc json.hpp)
 
 target_link_libraries(ws_client zmuduo_ws)

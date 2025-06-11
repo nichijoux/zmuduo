@@ -6,9 +6,9 @@
 #include "zmuduo/base/copyable.h"
 #include "zmuduo/net/buffer.h"
 #include "zmuduo/net/callbacks.h"
+#include <any>
 #include <memory>
 #include <string>
-#include <utility>
 
 namespace zmuduo::net::http::ws {
 
@@ -202,7 +202,7 @@ class WSSubProtocol {
      * @param[in] payload 输入数据。
      * @return 处理后的数据。
      */
-    virtual std::string process(const std::string& payload) = 0;
+    virtual std::any process(const std::string& payload) = 0;
 
   private:
     std::string m_name;  ///< 协议名称
@@ -212,10 +212,19 @@ class WSSubProtocol {
  * @brief websocket子协议比较器
  *
  * @note 通过比较子协议的名称进行比较
+ * @note 忽略大小写
  */
 struct WSSubProtocolCompare {
     bool operator()(const WSSubProtocol::Ptr& a, const WSSubProtocol::Ptr& b) const {
-        return a->getName() < b->getName();
+        // 控制帧
+        if (!a) {
+            return b != nullptr;
+        }
+        if (!b) {
+            return false;
+        }
+        // 忽略大小写
+        return strcasecmp(a->getName().c_str(), b->getName().c_str()) < 0;
     }
 };
 
