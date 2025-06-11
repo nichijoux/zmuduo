@@ -14,7 +14,9 @@ WSClient::WSClient(EventLoop* loop, const Uri& uri, std::string name)
     : WSClient(loop, uri.createAddress(), std::move(name)) {
     assert(uri.getScheme() == "ws" || uri.getScheme() == "wss");
     m_path = uri.getPath();
+#ifdef ZMUDUO_ENABLE_OPENSSL
     m_client.setSSLHostName(uri.getHost());
+#endif
 }
 
 WSClient::WSClient(EventLoop* loop, const Address::Ptr& serverAddress, std::string name)

@@ -68,6 +68,7 @@ void testMuduo() {
 }
 
 void testBaidu() {
+#ifdef ZMUDUO_ENABLE_OPENSSL
     EventLoop  loop;
     HttpClient client(&loop, "https://www.baidu.com/", "client");
     if (client.createSSLContext()) {
@@ -80,8 +81,10 @@ void testBaidu() {
                      },
                      {{"User-Agent", "ZmuduoClient"}, {"Accept", "*/*"}, {"Connection", "Close"}});
     }
-
     loop.loop();
+#else
+    ZMUDUO_LOG_ERROR << "Not enable openssl";
+#endif
 }
 
 void printUsage(const char* progName) {

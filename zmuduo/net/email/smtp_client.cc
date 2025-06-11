@@ -18,7 +18,9 @@ SmtpClient::SmtpClient(EventLoop* loop, const std::string& uri, std::string name
 SmtpClient::SmtpClient(zmuduo::net::EventLoop* loop, const zmuduo::net::Uri& uri, std::string name)
     : SmtpClient(loop, uri.createAddress(), std::move(name)) {
     assert(uri.getScheme() == "smtp");
+#ifdef ZMUDUO_ENABLE_OPENSSL
     m_client.setSSLHostName(uri.getHost());
+#endif
 }
 
 SmtpClient::SmtpClient(EventLoop* loop, const Address::Ptr& hostAddress, std::string name) noexcept

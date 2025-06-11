@@ -38,7 +38,9 @@ Pop3Client::Pop3Client(EventLoop* loop, const Uri& uri, bool useApop, std::strin
     assert(!m_username.empty());
     assert(!m_password.empty());
     assert(uri.getScheme() == "pop3");
+#ifdef ZMUDUO_ENABLE_OPENSSL
     m_client.setSSLHostName(uri.getHost());
+#endif
 }
 
 Pop3Client::Pop3Client(EventLoop*          loop,

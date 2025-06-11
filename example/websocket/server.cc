@@ -27,6 +27,7 @@ void testBasicWebSocket() {
 }
 
 void testWebSocketWithOpenSSL() {
+#ifdef ZMUDUO_ENABLE_OPENSSL
     EventLoop    loop;
     Address::Ptr address = IPv4Address::Create("127.0.0.1", 8000);
     WSServer     server(&loop, address, "WSServer[OpenSSL]");
@@ -49,6 +50,9 @@ void testWebSocketWithOpenSSL() {
     });
     server.start();
     loop.loop();
+#else
+    ZMUDUO_LOG_ERROR << "Not enable openssl";
+#endif
 }
 
 void testWebSocketWithSubProtocol() {

@@ -34,6 +34,7 @@ void testBasicWebSocket() {
 }
 
 void testWebSocketWithOpenSSL() {
+#ifdef ZMUDUO_ENABLE_OPENSSL
     EventLoop loop;
     WSClient  client(&loop, "wss://127.0.0.1:8000/echo", "WSClient[OpenSSL]");
     if (client.createSSLContext() && client.loadCustomCACertificate("cacert.pem", "")) {
@@ -57,6 +58,9 @@ void testWebSocketWithOpenSSL() {
         });
     client.connect();
     loop.loop();
+#else
+    ZMUDUO_LOG_ERROR << "Not enable openssl";
+#endif
 }
 
 void testWebSocketWithSubProtocol() {

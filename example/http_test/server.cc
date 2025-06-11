@@ -1,8 +1,5 @@
 #include "zmuduo/base/utils/hash_util.h"
-#include <netdb.h>
 #include <zmuduo/base/logger.h>
-#include <zmuduo/base/thread.h>
-#include <zmuduo/net/http/http_client.h>
 #include <zmuduo/net/http/http_parser.h>
 #include <zmuduo/net/http/http_server.h>
 #include <zmuduo/net/tcp_client.h>

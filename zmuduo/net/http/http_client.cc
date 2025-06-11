@@ -17,9 +17,11 @@ HttpClient::HttpClient(EventLoop* loop, const Uri& uri, std::string name)
     assert(uri.getScheme() == "http" || uri.getScheme() == "https");
     m_path = uri.getPath();
     m_host = uri.getHost();
+#ifdef ZMUDUO_ENABLE_OPENSSL
     if (!m_host.empty()) {
         m_client.setSSLHostName(m_host);
     }
+#endif
 }
 
 HttpClient::HttpClient(EventLoop* loop, const Address::Ptr& serverAddress, std::string name)
