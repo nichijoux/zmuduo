@@ -6,6 +6,22 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
+#ifdef ZMUDUO_ENABLE_OPENSSL
+#    include <openssl/ssl.h>
+
+namespace {
+struct SSLInit {
+    SSLInit() {
+        SSL_library_init();
+        SSL_load_error_strings();
+        OpenSSL_add_all_algorithms();
+    }
+};
+
+static SSLInit s_init;
+}  // namespace
+#endif
+
 namespace zmuduo::net {
 Socket::~Socket() {
     if (m_fd != -1) {

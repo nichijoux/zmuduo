@@ -43,10 +43,6 @@ class EchoServer {
 };
 
 int main() {
-    SSL_library_init();
-    SSL_load_error_strings();
-    OpenSSL_add_all_algorithms();
-
     EventLoop  loop;
     auto       addr = IPv4Address::Create("127.0.0.1", 8000);
     EchoServer server(&loop, addr, "SSLServer");
