@@ -36,7 +36,9 @@ std::string LogLevel::ToString(LogLevel::Level level) {
 
 LogLevel::Level LogLevel::FromString(const std::string& s) {
 #define CONVERT(level, str)                                                                        \
-    if (s == #str) { return LogLevel::Level::level; }
+    if (s == #str) {                                                                               \
+        return LogLevel::Level::level;                                                             \
+    }
 
     CONVERT(DEBUG, debug)
     CONVERT(DEBUG, DEBUG)
@@ -75,7 +77,9 @@ std::string LogMode::ToString(LogMode::Mode mode) {
 
 LogMode::Mode LogMode::FromString(const std::string& s) {
 #define CONVERT(mode, str)                                                                         \
-    if (s == #str) { return LogMode::Mode::mode; }
+    if (s == #str) {                                                                               \
+        return LogMode::Mode::mode;                                                                \
+    }
     CONVERT(STDOUT, STDOUT)
     CONVERT(FILE, FILE)
     CONVERT(BOTH, BOTH)
@@ -114,7 +118,12 @@ AsyncLogger::AsyncLogger()
 AsyncLogger::~AsyncLogger() {
     m_stop = true;
     m_condition.notify_all();
-    if (m_fileStream.is_open()) { m_fileStream.close(); }
+    if (!m_workerThread.isJoined()) {
+        m_workerThread.join();
+    }
+    if (m_fileStream.is_open()) {
+        m_fileStream.close();
+    }
 }
 
 AsyncLogger& AsyncLogger::GetInstance() {
@@ -137,14 +146,18 @@ void AsyncLogger::reset(LogLevel::Level    level,
     // 文件记录设置,是否需要重新打开文件
     if (filepath != m_logFilePath || maxFileSize != m_maxFileSize) {
         // 关闭当前文件
-        if (m_fileStream.is_open()) { m_fileStream.close(); }
+        if (m_fileStream.is_open()) {
+            m_fileStream.close();
+        }
         // 重置文件信息
         m_logFilePath     = filepath;
         m_maxFileSize     = maxFileSize;
         m_fileIndex       = 0;
         m_currentFileSize = 0;
         // 是否需要真的打开文件
-        if (m_mode == LogMode::Mode::FILE || m_mode == LogMode::Mode::BOTH) { openLogFile(); }
+        if (m_mode == LogMode::Mode::FILE || m_mode == LogMode::Mode::BOTH) {
+            openLogFile();
+        }
     } else {
         // 否则更新最大文件大小即可
         m_maxFileSize = maxFileSize;
@@ -157,7 +170,9 @@ void AsyncLogger::log(LogLevel::Level    level,
                       int                line,
                       const std::string& function) {
     // 日记级别分裂
-    if (level < m_minLevel) { return; }
+    if (level < m_minLevel) {
+        return;
+    }
     // 创建日志信息
     LogMessage logMessage(level, message, filename, line, function);
     // 放入队列中准备打印
@@ -174,7 +189,9 @@ void AsyncLogger::logFormat(LogLevel::Level    level,
                             const std::string& function,
                             const char*        format,
                             ...) {
-    if (level < m_minLevel) { return; }
+    if (level < m_minLevel) {
+        return;
+    }
     // 使用vasprintf确定buffer大小
     va_list args;
     va_start(args, format);
@@ -202,21 +219,27 @@ std::string AsyncLogger::GetLevelColor(LogLevel::Level level) {
 std::string AsyncLogger::FormatMessage(const LogMessage& message, bool useColor) {
     std::ostringstream oss;
 
-    if (useColor) { oss << GetLevelColor(message.m_level); }
+    if (useColor) {
+        oss << GetLevelColor(message.m_level);
+    }
 
     oss << "[" << LogLevel::ToString(message.m_level) << "]" << "[" << message.m_timestamp << "]"
         << "[" << message.m_pid << "]" << "[" << message.m_tid << "]" << "[" << message.m_filename
         << ":" << message.m_line << "]" << "[" << message.m_function << "()]" << "---"
         << message.m_content;
 
-    if (useColor) { oss << color::RESET; }
+    if (useColor) {
+        oss << color::RESET;
+    }
 
     return oss.str();
 }
 
 void AsyncLogger::openLogFile() {
     // 如果当前打开了文件则关闭
-    if (m_fileStream.is_open()) { m_fileStream.close(); }
+    if (m_fileStream.is_open()) {
+        m_fileStream.close();
+    }
     // 获取文件名
     std::stringstream ss;
     ss << m_logFilePath << Date::Now() << m_fileIndex << ".log";
@@ -257,7 +280,9 @@ void AsyncLogger::processLogs() {
             // 写入文件
             if (m_mode != LogMode::STDOUT) {
                 // 尝试打开文件
-                if (!m_fileStream.is_open()) { openLogFile(); }
+                if (!m_fileStream.is_open()) {
+                    openLogFile();
+                }
                 // 写入文件
                 if (m_fileStream.is_open()) {
                     // 写入文件的不需要颜色
@@ -270,7 +295,9 @@ void AsyncLogger::processLogs() {
                 }
             }
             // 是否为FATAL
-            if (message.m_level == LogLevel::Level::FATAL) { exit(0); }
+            if (message.m_level == LogLevel::Level::FATAL) {
+                exit(0);
+            }
             lock.lock();
         }
     }
