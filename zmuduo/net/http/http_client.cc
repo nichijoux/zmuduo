@@ -101,7 +101,6 @@ void HttpClient::doRequest(HttpMethod                   method,
 void HttpClient::doRequest(const HttpRequest&   request,
                            HttpResponseCallback callback,
                            uint32_t             timeout) {
-    ZMUDUO_LOG_WARNING << request.toString();
     // 添加一个请求
     m_callbacks.emplace(request, std::move(callback), timeout);
     if (!m_client.isConnected()) {
