@@ -104,7 +104,10 @@ int httpclient_parser_execute(httpclient_parser* parser,
     p  = buffer + off;
     pe = buffer + len;
 
-    assert(*pe == '\0' && "pointer does not end on NUL");
+    // 注释掉下面这一行,只需要使用长度进行判断即可,否则在buffer进行重用时会报错
+    // 也可以在使用httpclient_parser_execute前创建一个临时变量std::string,这样*p一定为\0
+    // 但是没有必要
+    // assert(*pe == '\0' && "pointer does not end on NUL");
     assert(pe - p == (int)len - (int)off && "pointers aren't same distance");
 
 #line 117 "httpclient_parser.cc"

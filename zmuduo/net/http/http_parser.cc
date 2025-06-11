@@ -234,7 +234,7 @@ void HttpResponseParser::handleWaitHeadState(Buffer& buffer) {
     // 最大解析长度
     auto length = footer - buffer.peek() + strlen(Buffer::S_HEADER_FOOTER);
     // 实际解析长度
-    httpclient_parser_execute(&m_parser, buffer.peek(), buffer.getReadableBytes(), 0);
+    httpclient_parser_execute(&m_parser, buffer.peek(), length, 0);
     // 是否解析完成
     int code = httpclient_parser_finish(&m_parser);
     if (code == 1) {
@@ -308,7 +308,10 @@ void HttpResponseParser::handleChunkedEncodingCase(Buffer& buffer) {
                 break;
             }
         } else {
+            // 为0了
             if (buffer.findHeaderFooter() != nullptr) {
+                // 为0并且找到了\r\n\r\n
+                buffer.retrieve(5);
                 m_state = State::FINISH;
                 break;
             } else {
