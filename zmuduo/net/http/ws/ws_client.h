@@ -149,7 +149,8 @@ class WSClient : NoCopyable {
     /**
      * @brief 创建并配置 SSL 上下文。
      *
-     * 初始化 SSL 上下文，加载系统默认 CA 证书路径，设置对等验证回调，并禁用不安全的协议（SSLv2/SSLv3）。<br/>
+     * 初始化 SSL 上下文，加载系统默认 CA
+     * 证书路径，设置对等验证回调，并禁用不安全的协议（SSLv2/SSLv3）。<br/>
      * 若客户端已连接或上下文已存在，则失败。
      *
      * @retval true SSL 上下文创建和配置成功。
@@ -216,8 +217,8 @@ class WSClient : NoCopyable {
 #endif
 
     /**
-     * @brief 添加子协议
-     * @param subProtocol websocket子协议的一个实现
+     * @brief 添加客户端支持的子协议
+     * @param[in] subProtocol websocket子协议的一个实现
      */
     void addSubProtocol(const WSSubProtocol::Ptr& subProtocol) {
         if (subProtocol) {
@@ -262,21 +263,14 @@ class WSClient : NoCopyable {
     onMessage(const TcpConnectionPtr& connection, Buffer& buffer, const Timestamp& receiveTime);
 
   private:
-    struct ProtocolCompare {
-        bool operator()(const WSSubProtocol::Ptr& a, const WSSubProtocol::Ptr& b) const {
-            return a->getName() < b->getName();
-        }
-    };
-
-  private:
-    State                                         m_state;         ///< 当前连接状态
-    TcpClient                                     m_client;        ///< tcp客户端
-    std::string                                   m_key;           ///< 用于tcp通信的key
-    std::string                                   m_path;          ///< 请求地址
-    std::set<WSSubProtocol::Ptr, ProtocolCompare> m_subProtocols;  ///< 所支持使用的子协议
-    WSConnectionCallback                          m_connectionCallback;  ///< ws连接的回调
-    WSMessageCallback                             m_messageCallback;  ///< ws收到消息的回调
-    WSFrameParser                                 m_parser;  ///< websocket数据帧的解析器
+    State       m_state;                                                ///< 当前连接状态
+    TcpClient   m_client;                                               ///< tcp客户端
+    std::string m_key;                                                  ///< 用于tcp通信的key
+    std::string m_path;                                                 ///< 请求地址
+    std::set<WSSubProtocol::Ptr, WSSubProtocolCompare> m_subProtocols;  ///< 所支持使用的子协议
+    WSConnectionCallback m_connectionCallback;                          ///< ws连接的回调
+    WSMessageCallback    m_messageCallback;                             ///< ws收到消息的回调
+    WSFrameParser        m_parser;  ///< websocket数据帧的解析器
 };
 }  // namespace zmuduo::net::http::ws
 

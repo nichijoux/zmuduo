@@ -3,13 +3,13 @@
 #ifndef ZMUDUO_NET_HTTP_WS_WS_SERVER_H
 #define ZMUDUO_NET_HTTP_WS_WS_SERVER_H
 
-#include "zmuduo/base/nocopyable.h"
 #include "zmuduo/net/address.h"
 #include "zmuduo/net/event_loop.h"
 #include "zmuduo/net/http/http_core.h"
 #include "zmuduo/net/http/ws/ws_dispatcher.h"
 #include "zmuduo/net/http/ws/ws_frame_parser.h"
 #include "zmuduo/net/tcp_server.h"
+#include <set>
 
 namespace zmuduo::net::http::ws {
 /**
@@ -86,8 +86,18 @@ class WSServer : NoCopyable {
      * @brief 获取当前支持的子协议
      * @return 当前服务器支持的子协议列表
      */
-    std::vector<WSSubProtocol::Ptr>& getSubProtocols() {
+    const std::set<WSSubProtocol::Ptr, WSSubProtocolCompare>& getSubProtocols() const {
         return m_subProtocols;
+    }
+
+    /**
+     * @brief 添加服务器支持的子协议
+     * @param[in] subProtocol websocket子协议的一个实现
+     */
+    void addSubProtocol(const WSSubProtocol::Ptr& subProtocol) {
+        if (subProtocol) {
+            m_subProtocols.insert(subProtocol);
+        }
     }
 
 #ifdef ZMUDUO_ENABLE_OPENSSL
@@ -176,7 +186,7 @@ class WSServer : NoCopyable {
     ServletDispatcher m_dispatcher;  ///< Servlet 分发器
     std::unordered_map<TcpConnection*, std::tuple<State, std::string, WSFrameParser::Ptr>>
         m_connections;  ///< 连接状态表（状态、路径、解析器）
-    std::vector<WSSubProtocol::Ptr> m_subProtocols;  ///< 支持的子协议列表
+    std::set<WSSubProtocol::Ptr, WSSubProtocolCompare> m_subProtocols;  ///< 支持的子协议列表
 };
 }  // namespace zmuduo::net::http::ws
 

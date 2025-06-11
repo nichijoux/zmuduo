@@ -209,6 +209,17 @@ class WSSubProtocol {
 };
 
 /**
+ * @brief websocket子协议比较器
+ *
+ * @note 通过比较子协议的名称进行比较
+ */
+struct WSSubProtocolCompare {
+    bool operator()(const WSSubProtocol::Ptr& a, const WSSubProtocol::Ptr& b) const {
+        return a->getName() < b->getName();
+    }
+};
+
+/**
  * @brief WebSocket 数据帧。
  *
  * 表示 WebSocket 协议中的数据帧或控制帧，包含 opcode、payload 和可选的子协议。<br/>

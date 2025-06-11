@@ -167,10 +167,13 @@ needParse:
 
 WSSubProtocol::Ptr WSServer::selectSubProtocol(const std::vector<std::string>& subProtocols) {
     for (const auto& name : subProtocols) {
-        for (const auto& protocol : m_subProtocols) {
-            if (protocol->getName() == name) {
-                return protocol;
-            }
+        // 查找支持的子协议
+        auto it = std::find_if(m_subProtocols.begin(), m_subProtocols.end(),
+                               [name](const WSSubProtocol::Ptr& protocol) {
+                                   return protocol && protocol->getName() == name;
+                               });
+        if (it != m_subProtocols.end()) {
+            return *it;
         }
     }
     return nullptr;
