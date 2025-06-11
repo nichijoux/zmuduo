@@ -5,6 +5,7 @@
 #define ZMUDUO_NET_TIMER_ID_H
 
 #include "zmuduo/base/copyable.h"
+#include <memory>
 
 namespace zmuduo::net {
 
@@ -38,7 +39,7 @@ class TimerId : public Copyable {
      * @brief 默认构造函数
      * @note 创建一个空的TimerId，timer指针为nullptr，序列号为0
      */
-    TimerId() : m_timer(nullptr), m_sequence(0) {}
+    TimerId() : m_timer(), m_sequence(0) {}
 
     /**
      * @brief 参数化构造函数
@@ -46,7 +47,7 @@ class TimerId : public Copyable {
      * @param[in] sequence 定时器序列号
      * @note 序列号用于区分相同timer指针的不同实例
      */
-    TimerId(const Timer* timer, int64_t sequence)
+    TimerId(const std::weak_ptr<Timer>& timer, int64_t sequence)
         : m_timer(timer), m_sequence(sequence) {}
 
     /**
@@ -58,8 +59,8 @@ class TimerId : public Copyable {
     friend class TimerQueue;
 
   private:
-    const Timer* m_timer;    ///< 指向关联定时器的指针
-    int64_t      m_sequence; ///< 定时器序列号，用于唯一标识
+    std::weak_ptr<Timer> m_timer;     ///< 指向关联定时器的指针
+    int64_t              m_sequence;  ///< 定时器序列号，用于唯一标识
 };
 
 }  // namespace zmuduo::net

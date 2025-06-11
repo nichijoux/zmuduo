@@ -98,9 +98,9 @@ TimerQueue::~TimerQueue() {
 }
 
 TimerId TimerQueue::addTimer(TimerCallback cb, Timestamp when, double interval) {
-    std::shared_ptr<Timer> timer(new Timer(std::move(cb), std::move(when), interval));
+    std::shared_ptr<Timer> timer(new Timer(std::move(cb), when, interval));
     m_eventLoop->runInLoop([this, &timer] { addTimerInLoop(timer); });
-    return {timer.get(), timer->getSequence()};
+    return {timer, timer->getSequence()};
 }
 
 void TimerQueue::cancel(const TimerId& timerId) {
@@ -117,8 +117,12 @@ void TimerQueue::addTimerInLoop(const std::shared_ptr<Timer>& timer) {
 
 void TimerQueue::cancelInLoop(const TimerId& timerId) {
     m_eventLoop->assertInLoopThread();
-    Entry entry(timerId.m_timer->getExpiration(),
-                std::shared_ptr<Timer>(const_cast<Timer*>(timerId.m_timer)), timerId.m_sequence);
+    // 提升为强指针
+    auto timer = timerId.m_timer.lock();
+    if (!timer) {
+        return;
+    }
+    Entry entry(timer->getExpiration(), timer, timerId.m_sequence);
     auto  it = m_timers.find(entry);
     if (it != m_timers.end()) {
         // timers中存在当前定时器
@@ -132,7 +136,6 @@ void TimerQueue::cancelInLoop(const TimerId& timerId) {
 void TimerQueue::handleRead() {
     // 确保当前线程是事件循环所在的线程
     m_eventLoop->assertInLoopThread();
-    // 获取当前时间戳
     auto now = Timestamp::Now();
     // 读取定时器文件描述符，结束EPOLLIN动作
     readTimerFD(m_timerFD, now);
@@ -144,7 +147,7 @@ void TimerQueue::handleRead() {
     // 清空正在取消的定时器集合
     m_cancelingTimers.clear();
     // 遍历所有已到期的定时器，并执行其回调函数
-    for (const Entry& entry : expired) {
+    for (const auto& entry : expired) {
         std::get<1>(entry)->run();
     }
     // 取消标记正在调用已到期的定时器
