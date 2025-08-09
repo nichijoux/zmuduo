@@ -9,7 +9,7 @@
 
 namespace zmuduo::net::http {
 HttpClient::HttpClient(EventLoop* loop, const std::string& uri, std::string name)
-    : HttpClient(loop, utils::CommonUtil::CheckNotNull(Uri::Create(uri)), std::move(name)) {}
+    : HttpClient(loop, utils::common_util::CheckNotNull(Uri::Create(uri)), std::move(name)) {}
 
 HttpClient::HttpClient(EventLoop* loop, const Uri& uri, std::string name)
 

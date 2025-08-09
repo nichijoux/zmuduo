@@ -12,9 +12,12 @@
 #include <string>
 #include <utility>
 
+using namespace zmuduo::utils::hash_util;
+using namespace zmuduo::utils::string_util;
+
 namespace {
 std::vector<std::string> ensureUserInfoLength(const std::string& userinfo, size_t length) {
-    auto parts = zmuduo::utils::StringUtil::Split(userinfo, ':');
+    auto parts = Split(userinfo, ':');
     if (parts.size() < length) {
         parts.resize(length, "");  // 如果数组长度不足，用空字符串填充
     }
@@ -26,7 +29,7 @@ namespace zmuduo::net::email {
 using namespace zmuduo::utils;
 
 Pop3Client::Pop3Client(EventLoop* loop, const std::string& uri, bool useApop, std::string name)
-    : Pop3Client(loop, CommonUtil::CheckNotNull(Uri::Create(uri)), useApop, std::move(name)) {}
+    : Pop3Client(loop, common_util::CheckNotNull(Uri::Create(uri)), useApop, std::move(name)) {}
 
 Pop3Client::Pop3Client(EventLoop* loop, const Uri& uri, bool useApop, std::string name)
     : Pop3Client(loop,
@@ -116,7 +119,7 @@ void Pop3Client::handleAuthorization(const TcpConnectionPtr& connection, Buffer&
                     size_t end   = response.find('>');
                     if (start != std::string::npos && end != std::string::npos && end > start) {
                         m_timestamp     = response.substr(start, end - start + 1);
-                        m_finalPassword = HashUtil::MD5(m_timestamp + m_password);
+                        m_finalPassword = hash_util::MD5(m_timestamp + m_password);
                         CHECK_AND_SEND(Command::APOP,
                                        "APOP " + m_username + " " + m_finalPassword + "\r\n");
                     } else {
@@ -200,7 +203,7 @@ void Pop3Client::handleTransaction(Buffer& buffer) {
 bool Pop3Client::preprocessing(const std::string& response) {
     ZMUDUO_LOG_DEBUG << "POP3 响应: " << response;
     // 检查响应是否以 "+OK" 开头
-    return StringUtil::StartsWith(response, "+OK");
+    return StartsWith(response, "+OK");
 }
 
 #define GET_AND_CALL_CALLBACK(response)                                                            \

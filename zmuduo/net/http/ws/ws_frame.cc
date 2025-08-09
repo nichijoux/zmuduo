@@ -4,6 +4,8 @@
 #include "zmuduo/net/endian.h"
 #include "zmuduo/net/tcp_connection.h"
 
+using namespace zmuduo::utils::hash_util;
+
 namespace zmuduo::net::http::ws {
 WSCloseCode CharsToWSCloseCode(const char* s) {
 #define XX(num, name, string)                                                                      \
@@ -146,7 +148,7 @@ std::string WSFrameMessage::serialize(bool isClient) const {
     auto data = m_payload;
     // 写入mask
     if (head.mask) {
-        auto maskKey = utils::HashUtil::RandomString(4);
+        auto maskKey = RandomString(4);
         buffer.write(maskKey);
         for (size_t i = 0; i < data.size(); ++i) {
             data[i] ^= maskKey[i % maskKey.size()];

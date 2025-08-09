@@ -5,7 +5,7 @@
 #include <zmuduo/base/logger.h>
 #include <zmuduo/base/utils/string_util.h>
 
-using namespace zmuduo::utils;
+using namespace zmuduo::utils::string_util;
 
 void CompressFilter::beforeHandle(HttpRequest& request) {
     m_encoding = Encoding::None;
@@ -14,13 +14,13 @@ void CompressFilter::beforeHandle(HttpRequest& request) {
     if (rawHeader.empty())
         return;
 
-    auto                       encodings = StringUtil::Split(rawHeader, ",");
+    auto                       encodings = Split(rawHeader, ",");
     std::vector<EncodingEntry> clientPreferred;
 
     for (auto& enc : encodings) {
-        auto parts = StringUtil::Split(StringUtil::Trim(enc), ";");
+        auto parts = Split(Trim(enc), ";");
 
-        std::string name = StringUtil::Trim(parts[0]);
+        std::string name = Trim(parts[0]);
         double      q    = 1.0;
 
         if (parts.size() > 1) {

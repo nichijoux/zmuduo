@@ -26,12 +26,12 @@ EMailEntity::Ptr EMailEntity::CreateAttachment(const std::string& path) {
         entity->m_content.append(buffer.c_str(), ifs.gcount());
     }
     // 将邮件实体的内容进行Base64编码
-    entity->m_content = utils::HashUtil::Base64encode(entity->m_content);
+    entity->m_content = utils::hash_util::Base64encode(entity->m_content);
     // 添加邮件头，指定内容传输编码为Base64
     entity->addHeader("Content-Transfer-Encoding", "base64");
     entity->addHeader("Content-Disposition", "attachment");
     entity->addHeader("Content-Type",
-                      "application/octet-stream;name=" + utils::FSUtil::GetName(path).string());
+                      "application/octet-stream;name=" + utils::fs_util::GetName(path).string());
     return entity;
 }
 

@@ -42,7 +42,7 @@ void Thread::start() {
     m_thread = std::thread([&]() {
         try {
             // 获取线程的id
-            m_tid = utils::SystemUtil::GetTid();
+            m_tid = utils::system_util::GetTid();
             semaphore.notify();
             // 执行任务
             m_task();

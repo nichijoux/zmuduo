@@ -13,7 +13,7 @@ namespace zmuduo::net::email {
 using namespace utils;
 
 SmtpClient::SmtpClient(EventLoop* loop, const std::string& uri, std::string name)
-    : SmtpClient(loop, CommonUtil::CheckNotNull(Uri::Create(uri)), std::move(name)) {}
+    : SmtpClient(loop, common_util::CheckNotNull(Uri::Create(uri)), std::move(name)) {}
 
 SmtpClient::SmtpClient(zmuduo::net::EventLoop* loop, const zmuduo::net::Uri& uri, std::string name)
     : SmtpClient(loop, uri.createAddress(), std::move(name)) {
@@ -57,8 +57,8 @@ void SmtpClient::sendInLoop(const EMail::Ptr& email) {
     m_commands.emplace_back("HELO " + username.substr(pos + 1) + "\r\n");
     m_commands.emplace_back("AUTH LOGIN\r\n");
     // 用户名和密码
-    m_commands.emplace_back(utils::HashUtil::Base64encode(username.substr(0, pos)) + "\r\n");
-    m_commands.emplace_back(utils::HashUtil::Base64encode(password) + "\r\n");
+    m_commands.emplace_back(utils::hash_util::Base64encode(username.substr(0, pos)) + "\r\n");
+    m_commands.emplace_back(utils::hash_util::Base64encode(password) + "\r\n");
     m_commands.emplace_back("MAIL FROM:<" + email->getFromEMailAddress() + ">\r\n");
     // 多个收件人
     std::set<std::string> targets;
@@ -100,7 +100,7 @@ void SmtpClient::sendInLoop(const EMail::Ptr& email) {
     buffer << "Subject: " << email->getTitle() << "\r\n";
     std::string boundary;
     if (!entities.empty()) {
-        boundary = utils::HashUtil::RandomString(16);
+        boundary = utils::hash_util::RandomString(16);
         buffer << "Content-Type: multipart/mixed;boundary=" << boundary << "\r\n";
     }
     buffer << "MIME-Version: 1.0\r\n";

@@ -4,7 +4,7 @@
 #include "zmuduo/base/utils/string_util.h"
 #include "zmuduo/net/http/http_context.h"
 
-using namespace zmuduo::utils;
+using namespace zmuduo::utils::string_util;
 
 namespace zmuduo::net::http {
 HttpServer::HttpServer(EventLoop*          loop,
@@ -49,7 +49,7 @@ needParse:
         auto& request  = context->getRequest();
         auto& response = context->getResponse();
         // url解码
-        request.setPath(StringUtil::UrlDecode(request.getPath()));
+        request.setPath(UrlDecode(request.getPath()));
         // 设置version
         response.setVersion(request.getVersion());
         response.setClose(request.isClose());

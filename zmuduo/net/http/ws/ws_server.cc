@@ -6,6 +6,9 @@
 #include "zmuduo/net/http/http_context.h"
 #include "zmuduo/net/http/http_parser.h"
 
+using namespace zmuduo::utils::hash_util;
+using namespace zmuduo::utils::string_util;
+
 namespace zmuduo::net::http::ws {
 WSServer::WSServer(EventLoop* loop, const Address::Ptr& listenAddress, const std::string& name)
     : m_server(loop, listenAddress, name), m_dispatcher(), m_connections() {
@@ -101,7 +104,7 @@ void WSServer::httpHandShake(const TcpConnectionPtr& connection, const HttpReque
     if (!subProtocols.empty()) {
         // 先去掉\r\t\n,然后再按;分割
         const auto& protocol =
-            selectSubProtocol(utils::StringUtil::Split(utils::StringUtil::Trim(subProtocols), ';'));
+            selectSubProtocol(Split(Trim(subProtocols), ';'));
         if (protocol) {
             // 成功选择了一个子协议
             response.setHeader("Sec-WebSocket-Protocol", protocol->getName());
@@ -125,8 +128,7 @@ void WSServer::httpHandShake(const TcpConnectionPtr& connection, const HttpReque
     response.setHeader("Connection", "Upgrade");
     response.setHeader(
         "Sec-WebSocket-Accept",
-        utils::HashUtil::Base64encode(utils::HashUtil::HexToBinary(
-            utils::HashUtil::SHA1sum(key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))));
+        Base64encode(HexToBinary(SHA1sum(key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))));
     // 成功升级为websocket,将其加入到集合中
     std::get<0>(m_connections[it]) = State::WEBSOCKET;
     std::get<1>(m_connections[it]) = request.getPath();

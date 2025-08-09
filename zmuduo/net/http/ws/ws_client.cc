@@ -6,9 +6,11 @@
 #include "zmuduo/net/http/http_core.h"
 #include <utility>
 
+using namespace zmuduo::utils::hash_util;
+
 namespace zmuduo::net::http::ws {
 WSClient::WSClient(EventLoop* loop, const std::string& uri, std::string name)
-    : WSClient(loop, utils::CommonUtil::CheckNotNull(Uri::Create(uri)), std::move(name)) {}
+    : WSClient(loop, utils::common_util::CheckNotNull(Uri::Create(uri)), std::move(name)) {}
 
 WSClient::WSClient(EventLoop* loop, const Uri& uri, std::string name)
     : WSClient(loop, uri.createAddress(), std::move(name)) {
@@ -62,7 +64,7 @@ void WSClient::doHandShake() {
     // 进行握手
     m_state = State::TCP;
     // 先生成一个key
-    m_key = utils::HashUtil::Base64encode(utils::HashUtil::RandomString(16));
+    m_key = Base64encode(RandomString(16));
     // 然后构造http请求
     HttpRequest request;
     request.setWebsocket(true);
@@ -177,8 +179,8 @@ void WSClient::onMessage(const TcpConnectionPtr& connection,
             }
             // 检验http中的accept是否合法
             auto acceptKey = response.getHeader("Sec-WebSocket-Accept");
-            auto validKey  = utils::HashUtil::Base64encode(utils::HashUtil::HexToBinary(
-                utils::HashUtil::SHA1sum(m_key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
+            auto validKey =
+                Base64encode(HexToBinary(SHA1sum(m_key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
             if (validKey != acceptKey) {
                 ZMUDUO_LOG_ERROR << m_client.getName()
                                  << "received invalid Sec-WebSocket-Accept: " << acceptKey;

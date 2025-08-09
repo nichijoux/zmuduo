@@ -237,9 +237,9 @@ T lexical_cast(const S& arg) noexcept {
  * @example
  *
  * @code
- * int i = lexical_cast<int>("abc", 42); // 返回 42（回退值）
- * double d = lexical_cast<double>("3.14", 0.0); // 返回 3.14
- * std::string s = lexical_cast<std::string>(123, "default"); // 返回 "123"
+ * int i = lexical_cast&lt;int&gt;("abc", 42); // 返回 42（回退值）
+ * double d = lexical_cast&lt;double&gt;("3.14", 0.0); // 返回 3.14
+ * std::string s = lexical_cast&lt;std::string&gt;(123, "default"); // 返回 "123"
  * @endcode
  */
 template <typename T, typename S, typename Fallback>

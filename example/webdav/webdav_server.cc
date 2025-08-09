@@ -12,8 +12,10 @@
 #include <iomanip>
 
 namespace fs = std::filesystem;
-using namespace zmuduo::utils;
+using namespace zmuduo::utils::hash_util;
 using namespace tinyxml2;
+using namespace zmuduo::utils::string_util;
+using namespace zmuduo::utils::fs_util;
 
 namespace {
 bool isValidLinuxPath(const std::string& path) {
@@ -29,7 +31,7 @@ bool isValidLinuxPath(const std::string& path) {
 
 // 生成符合 WebDAV 标准的 Last-Modified 时间字符串
 std::string getWebdavLastModified(const fs::path& path) {
-    std::time_t time = zmuduo::utils::FSUtil::GetLastModifiedTime(path);
+    std::time_t time = GetLastModifiedTime(path);
 
     std::tm tm{};
     gmtime_r(&time, &tm);  // 使用 gmtime_r（线程安全）或 gmtime（非线程安全）
@@ -123,8 +125,7 @@ void addResourceXml(tinyxml2::XMLDocument&     doc,
     tinyxml2::XMLElement* response = doc.NewElement("D:response");
     // 路径
     tinyxml2::XMLElement* href = doc.NewElement("D:href");
-    href->SetText(
-        StringUtil::UrlEncode(fs::path(baseRequestPath + relUri).lexically_normal()).c_str());
+    href->SetText(UrlEncode(fs::path(baseRequestPath + relUri).lexically_normal()).c_str());
     response->InsertEndChild(href);
 
     tinyxml2::XMLElement* propstat = doc.NewElement("D:propstat");
@@ -209,6 +210,7 @@ WebDavServer::WebDavServer(EventLoop*          loop,
                                           Func(request, response);                                 \
                                       });                                                          \
     } while (false)
+
     // 不同METHOD的回调
     APP_DISPATCHER(m_prefixPath + "/*", HttpMethod::PROPFIND, handlePropfind);
     APP_DISPATCHER(m_prefixPath + "/*", HttpMethod::MKCOL, handleMkcol);
@@ -249,7 +251,7 @@ bool WebDavServer::checkBasicAuth(const HttpRequest& request) {
     }
     // 对除去basic后的字符串进行base64解码
     std::string encoded = auth.substr(6);
-    std::string decoded = HashUtil::Base64decode(encoded);
+    std::string decoded = Base64decode(encoded);
     // 查找：分割用户名和密码
     auto sep = decoded.find(':');
     if (sep == std::string::npos) {
@@ -313,7 +315,8 @@ void WebDavServer::handlePropfind(const HttpRequest& request, HttpResponse& resp
                 addResourceXml(doc, multistatus, entry, request.getPath(), relPath);
             }
         }
-    } else {  // Depth::Infinity
+    } else {
+        // Depth::Infinity
         addResourceRecursive(doc, multistatus, request, fullPath, fullPath, request.getPath());
     }
 
@@ -350,7 +353,7 @@ void WebDavServer::handlePut(const HttpRequest& request, HttpResponse& response)
                             .lexically_normal();
     ZMUDUO_LOG_DEBUG << fullPath;
     // 检查路径是否在允许范围内（防止路径穿越）
-    if (fullPath.string().find(m_sharePath) != 0) {
+    if (!StartsWith(fullPath.string(), m_sharePath)) {
         setDavError(response, HttpStatus::FORBIDDEN);
         return;
     }

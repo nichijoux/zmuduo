@@ -5,7 +5,8 @@
 #include <sys/utsname.h>
 #include <zmuduo/base/utils/fs_util.h>
 
-using namespace zmuduo::utils;
+using namespace zmuduo::utils::string_util;
+using namespace zmuduo::utils::fs_util;
 
 namespace zmuduo::inspect {
 std::string uptime(const Timestamp& now, const Timestamp& start, bool showMicroseconds) {
@@ -67,7 +68,7 @@ void SystemInspector::handle(const HttpRequest& request, HttpResponse& response)
 }
 
 void SystemInspector::loadavg(const HttpRequest& request, HttpResponse& response) {
-    std::string content = FSUtil::ReadText("/proc/loadavg", 65536);
+    std::string content = ReadText("/proc/loadavg", 65536);
 
     // /proc/loadavg 内容格式：
     // 0.15 0.17 0.16 1/456 12345
@@ -143,7 +144,7 @@ void SystemInspector::loadavg(const HttpRequest& request, HttpResponse& response
 }
 
 void SystemInspector::version(const HttpRequest& request, HttpResponse& response) {
-    std::string content = FSUtil::ReadText("/proc/version", 65536);
+    std::string content = ReadText("/proc/version", 65536);
 
     std::stringstream result;
     result << R"(
@@ -199,8 +200,8 @@ void SystemInspector::version(const HttpRequest& request, HttpResponse& response
 }
 
 void SystemInspector::cpuinfo(const HttpRequest& request, HttpResponse& response) {
-    std::string              content = FSUtil::ReadText("/proc/cpuinfo", 65536);
-    std::vector<std::string> lines   = StringUtil::Split(content, '\n');
+    std::string              content = ReadText("/proc/cpuinfo", 65536);
+    std::vector<std::string> lines   = Split(content, '\n');
 
     std::stringstream result;
     result << R"(
@@ -279,8 +280,8 @@ void SystemInspector::cpuinfo(const HttpRequest& request, HttpResponse& response
         auto pos = line.find(':');
         if (pos == std::string::npos)
             continue;
-        std::string key = StringUtil::Trim(line.substr(0, pos));
-        std::string val = StringUtil::Trim(line.substr(pos + 1));
+        std::string key = Trim(line.substr(0, pos));
+        std::string val = Trim(line.substr(pos + 1));
         cpu_fields.emplace_back(key, val);
     }
 
@@ -307,8 +308,8 @@ void SystemInspector::cpuinfo(const HttpRequest& request, HttpResponse& response
 }
 
 void SystemInspector::meminfo(const HttpRequest& request, HttpResponse& response) {
-    std::string              content = FSUtil::ReadText("/proc/meminfo", 65536);
-    std::vector<std::string> lines   = StringUtil::Split(content, '\n');
+    std::string              content = ReadText("/proc/meminfo", 65536);
+    std::vector<std::string> lines   = Split(content, '\n');
 
     std::stringstream result;
     result << R"(
@@ -370,8 +371,8 @@ void SystemInspector::meminfo(const HttpRequest& request, HttpResponse& response
         auto pos = line.find(':');
         if (pos == std::string::npos)
             continue;
-        std::string key   = StringUtil::Trim(line.substr(0, pos));
-        std::string value = StringUtil::Trim(line.substr(pos + 1));
+        std::string key   = Trim(line.substr(0, pos));
+        std::string value = Trim(line.substr(pos + 1));
         result << "<tr><td class='key'>" << key << "</td><td class='value'>" << value
                << "</td></tr>\n";
     }
@@ -388,10 +389,10 @@ void SystemInspector::meminfo(const HttpRequest& request, HttpResponse& response
 }
 
 void SystemInspector::stat(const HttpRequest& request, HttpResponse& response) {
-    std::string       content = FSUtil::ReadText("/proc/stat", 65536);
+    std::string       content = ReadText("/proc/stat", 65536);
     std::stringstream result;
 
-    std::vector<std::string> lines = StringUtil::Split(content, '\n');
+    std::vector<std::string> lines = Split(content, '\n');
 
     result << R"(
 <!DOCTYPE html>
@@ -420,9 +421,9 @@ void SystemInspector::stat(const HttpRequest& request, HttpResponse& response) {
 
     // 输出 CPU 相关信息
     for (const auto& line : lines) {
-        if (!StringUtil::StartsWith(line, "cpu"))
+        if (!StartsWith(line, "cpu"))
             break;
-        auto tokens = StringUtil::Split(line, ' ');
+        auto tokens = Split(line, ' ');
         tokens.erase(std::remove_if(tokens.begin(), tokens.end(),
                                     [](const std::string& s) { return s.empty(); }),
                      tokens.end());
@@ -450,13 +451,13 @@ void SystemInspector::stat(const HttpRequest& request, HttpResponse& response) {
     result << "<tr><th>Key</th><th>Value(s)</th></tr>\n";
 
     for (const auto& line : lines) {
-        if (line.empty() || StringUtil::StartsWith(line, "cpu"))
+        if (line.empty() || StartsWith(line, "cpu"))
             continue;
         auto space_pos = line.find(' ');
         if (space_pos == std::string::npos)
             continue;
         std::string key   = line.substr(0, space_pos);
-        std::string value = StringUtil::Trim(line.substr(space_pos));
+        std::string value = Trim(line.substr(space_pos));
         result << "<tr><td class=\"mono\">" << key << "</td><td class=\"mono\">" << value
                << "</td></tr>\n";
     }
@@ -476,7 +477,7 @@ void SystemInspector::overview(const HttpRequest& request, HttpResponse& respons
     // 获取基本信息
     std::string hostname, machine, os, version;
     {
-        struct utsname un {};
+        struct utsname un{};
         if (::uname(&un) == 0) {
             hostname = un.nodename;
             machine  = un.machine;
@@ -485,14 +486,14 @@ void SystemInspector::overview(const HttpRequest& request, HttpResponse& respons
         }
     }
 
-    std::string stat = FSUtil::ReadText("/proc/stat", 65536);
+    std::string stat = ReadText("/proc/stat", 65536);
     Timestamp   bootTime(Timestamp::S_MICRO_SECONDS_PER_SECOND * getLong(stat, "btime "));
     std::string upTime = uptime(now, bootTime, false);
 
-    std::string loadavg      = FSUtil::ReadText("/proc/loadavg", 65536);
+    std::string loadavg      = ReadText("/proc/loadavg", 65536);
     long        processCount = getLong(stat, "process ");
 
-    auto meminfo    = FSUtil::ReadText("/proc/meminfo", 65536);
+    auto meminfo    = ReadText("/proc/meminfo", 65536);
     long total_kb   = getLong(meminfo, "MemTotal:");
     long free_kb    = getLong(meminfo, "MemFree:");
     long buffers_kb = getLong(meminfo, "Buffers:");
@@ -501,11 +502,11 @@ void SystemInspector::overview(const HttpRequest& request, HttpResponse& respons
     long realUsed = (total_kb - free_kb - buffers_kb - cached_kb) / 1024;
     long realFree = (free_kb + buffers_kb + cached_kb) / 1024;
 
-    auto mounts      = FSUtil::ReadText("/proc/mounts", 65536);
-    auto mount_lines = StringUtil::Split(mounts, '\n');
+    auto mounts      = ReadText("/proc/mounts", 65536);
+    auto mount_lines = Split(mounts, '\n');
 
-    auto netdev    = FSUtil::ReadText("/proc/net/dev", 65536);
-    auto net_lines = StringUtil::Split(netdev, '\n');
+    auto netdev    = ReadText("/proc/net/dev", 65536);
+    auto net_lines = Split(netdev, '\n');
 
     // 构建 HTML 页面
     result << R"(
@@ -540,8 +541,8 @@ void SystemInspector::overview(const HttpRequest& request, HttpResponse& respons
 
     // CPU
     result << "<div class='section'><h2>CPU</h2>" << "<p><strong>Processes Created:</strong> "
-           << processCount << "</p>" << "<p><strong>Load Average:</strong> "
-           << StringUtil::Trim(loadavg) << "</p></div>";
+           << processCount << "</p>" << "<p><strong>Load Average:</strong> " << Trim(loadavg)
+           << "</p></div>";
 
     // Memory
     result << "<div class='section'><h2>Memory</h2><table>"
@@ -559,14 +560,14 @@ void SystemInspector::overview(const HttpRequest& request, HttpResponse& respons
     for (const auto& line : mount_lines) {
         if (line.empty() || line.find("/dev/") != 0)
             continue;
-        auto fields = StringUtil::Split(line, ' ');
+        auto fields = Split(line, ' ');
         if (fields.size() < 2) {
             continue;
         }
         std::string device      = fields[0];
         std::string mount_point = fields[1];
 
-        struct statfs fs {};
+        struct statfs fs{};
         if (::statfs(mount_point.c_str(), &fs) != 0) {
             continue;
         }
@@ -592,14 +593,14 @@ void SystemInspector::overview(const HttpRequest& request, HttpResponse& respons
             continue;
         }
 
-        auto parts = StringUtil::Split(line, ':');
+        auto parts = Split(line, ':');
         if (parts.size() < 2) {
             continue;
         }
-        std::string iface = StringUtil::Trim(parts[0]);
-        std::string stats = StringUtil::Trim(parts[1]);
+        std::string iface = Trim(parts[0]);
+        std::string stats = Trim(parts[1]);
 
-        auto fields = StringUtil::Split(stats, ' ');
+        auto fields = Split(stats, ' ');
         if (fields.size() < 16) {
             continue;
         }

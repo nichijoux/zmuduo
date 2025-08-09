@@ -10,7 +10,7 @@ void EventLoopThread::threadFunction() {
     if (m_initCallback) {
         m_initCallback(&loop);
     }
-    // 初始化eventloop
+    // 初始化eventLoop
     {
         std::unique_lock<std::mutex> lock(m_mutex);
         m_loop = &loop;

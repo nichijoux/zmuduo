@@ -145,7 +145,7 @@ struct CaseInsensitiveLess {
  * 定义了标准 HTTP 方法（GET, POST 等）及扩展方法（WebDAV, CalDAV 等），符合 RFC 7231 和相关标准。
  */
 enum class HttpMethod {
-#define XX(num, name, string) name = num,
+#define XX(num, name, string) name = (num),
     HTTP_METHOD_MAP(XX)
 #undef XX
         INVALID_METHOD
@@ -158,7 +158,7 @@ enum class HttpMethod {
  * 定义了标准 HTTP 状态码（200 OK, 404 Not Found 等），符合 RFC 7231 和相关标准。
  */
 enum class HttpStatus {
-#define XX(code, name, desc) name = code,
+#define XX(code, name, desc) name = (code),
     HTTP_STATUS_MAP(XX)
 #undef XX
 };
@@ -233,10 +233,7 @@ T getAs(const MapType& map, const std::string& key, const T& def = T()) {
     if (it == map.end()) {
         return def;
     }
-    try {
-        return lexical_cast<T>(it->second);
-    } catch (...) {}
-    return def;
+    return lexical_cast<T>(it->second, def);
 }
 
 /**

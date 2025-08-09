@@ -6,9 +6,12 @@
 #include <zmuduo/base/utils/fs_util.h>
 #include <zmuduo/base/utils/system_util.h>
 
+using namespace zmuduo::utils::fs_util;
+using namespace zmuduo::utils::system_util;
+
 namespace {
 std::string getProcStatus() {
-    return zmuduo::utils::FSUtil::ReadText("/proc/self/status", 65536);
+    return ReadText("/proc/self/status", 65536);
 }
 
 std::string getProcName(const std::string& stat) {
@@ -211,9 +214,9 @@ void PerformanceInspector::profile(const HttpRequest& request, HttpResponse& res
     std::string profile;
     bool        success = false;
     if (ProfilerStart(filename.c_str())) {
-        utils::SystemUtil::SleepUsec(30 * 1000 * 1000);
+        SleepUsec(30 * 1000 * 1000);
         ProfilerStop();
-        profile = utils::FSUtil::ReadText(filename, 1024 * 1024);
+        profile = ReadText(filename, 1024 * 1024);
         ::unlink(filename.c_str());
         success = true;
     }

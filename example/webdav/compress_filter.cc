@@ -5,7 +5,7 @@
 #include <zmuduo/base/logger.h>
 #include <zmuduo/base/utils/string_util.h>
 
-using namespace zmuduo::utils;
+using namespace zmuduo::utils::string_util;
 
 void CompressFilter::beforeHandle(HttpRequest& request) {
     m_encoding = Encoding::None;
@@ -14,13 +14,13 @@ void CompressFilter::beforeHandle(HttpRequest& request) {
     if (rawHeader.empty())
         return;
 
-    auto                       encodings = StringUtil::Split(rawHeader, ",");
+    auto                       encodings = Split(rawHeader, ",");
     std::vector<EncodingEntry> clientPreferred;
 
     for (auto& enc : encodings) {
-        auto parts = StringUtil::Split(StringUtil::Trim(enc), ";");
+        auto parts = Split(Trim(enc), ";");
 
-        std::string name = StringUtil::Trim(parts[0]);
+        std::string name = Trim(parts[0]);
         double      q    = 1.0;
 
         if (parts.size() > 1) {
@@ -33,27 +33,29 @@ void CompressFilter::beforeHandle(HttpRequest& request) {
         }
 
         Encoding type = Encoding::None;
-        if (name == "gzip")
+        if (name == "gzip") {
             type = Encoding::Gzip;
-        else if (name == "deflate")
+        } else if (name == "deflate") {
             type = Encoding::Deflate;
-        else if (name == "identity")
+        } else if (name == "identity") {
             type = Encoding::None;
-        else
+        } else {
             continue;
-
+        }
         clientPreferred.push_back({type, q});
     }
 
-    if (clientPreferred.empty())
+    if (clientPreferred.empty()) {
         return;
+    }
 
     std::sort(clientPreferred.begin(), clientPreferred.end(),
               [](const EncodingEntry& a, const EncodingEntry& b) { return a.q > b.q; });
 
     for (const auto& entry : clientPreferred) {
-        if (entry.q <= 0.0)
+        if (entry.q <= 0.0) {
             continue;
+        }
 
         if (entry.type == Encoding::Gzip || entry.type == Encoding::Deflate ||
             entry.type == Encoding::None) {

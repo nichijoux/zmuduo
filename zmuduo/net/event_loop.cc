@@ -59,14 +59,14 @@ IgnoreSigPipe _initObject;
 }  // namespace
 
 namespace zmuduo::net {
-using namespace utils;
+using namespace utils::system_util;
 
 EventLoop::EventLoop()
     : m_looping(false),
       m_quit(false),
       m_iteration(0),
       m_callingPendingFunctors(false),
-      m_threadId(SystemUtil::GetTid()),
+      m_threadId(GetTid()),
       m_eventHandling(false),
       m_poller(Poller::newPoller(this)),
       m_wakeupFd(createEventFD()),
@@ -86,7 +86,7 @@ EventLoop::EventLoop()
 
 EventLoop::~EventLoop() {
     ZMUDUO_LOG_FMT_DEBUG("EventLoop %p of thread %d destructs in thread %d", this, m_threadId,
-                         SystemUtil::GetTid());
+                         GetTid());
     m_wakeupChannel->disableAll();
     m_wakeupChannel->remove();
     close(m_wakeupFd);
@@ -98,7 +98,7 @@ void EventLoop::assertInLoopThread() const {
         ZMUDUO_LOG_FMT_FATAL(
             "EventLoop::assertInLoopThread - EventLoop %p was created in threadId %d, "
             "current thread id %d",
-            this, m_threadId, SystemUtil::GetTid());
+            this, m_threadId, GetTid());
     }
 }
 
@@ -236,7 +236,7 @@ bool EventLoop::hasChannel(Channel* channel) const {
 bool EventLoop::isInLoopThread() const {
     // m_threadId 是 EventLoop 类的一个成员变量，保存了事件循环所属的线程ID
     // SystemUtils::GetThreadId() 调用syscall，用于获取当前线程的ID
-    return m_threadId == SystemUtil::GetTid();
+    return m_threadId == GetTid();
 }
 
 EventLoop* EventLoop::checkNotNull(EventLoop* loop) {

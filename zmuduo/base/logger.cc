@@ -5,6 +5,8 @@
 #include <cstdarg>
 #include <iostream>
 
+using namespace zmuduo::utils::system_util;
+
 namespace zmuduo {
 void Exit(int sig) {
     exit(0);
@@ -96,8 +98,8 @@ LogMessage::LogMessage(LogLevel::Level level,
     : m_level(level),
       m_content(std::move(content)),
       m_timestamp(Timestamp::Now()),
-      m_pid(utils::SystemUtil::GetPid()),
-      m_tid(utils::SystemUtil::GetTid()),
+      m_pid(GetPid()),
+      m_tid(GetTid()),
       m_filename(std::move(file)),
       m_line(line),
       m_function(std::move(func)) {}
