@@ -6,7 +6,8 @@
 
 namespace zmuduo::net {
 EventLoopThreadPool::EventLoopThreadPool(EventLoop* baseLoop, std::string name)
-    : m_baseLoop(baseLoop), m_name(std::move(name)), m_started(false), m_numThreads(0), m_next(0) {}
+    : m_baseLoop(baseLoop),
+      m_name(std::move(name)) {}
 
 void EventLoopThreadPool::start(const ThreadInitCallback& callback) {
     // 启动线程池
@@ -42,7 +43,7 @@ EventLoop* EventLoopThreadPool::getNextLoop() {
     return loop;
 }
 
-EventLoop* EventLoopThreadPool::getLoopForHash(size_t hashCode) {
+EventLoop* EventLoopThreadPool::getLoopForHash(const size_t hashCode) const {
     m_baseLoop->assertInLoopThread();
     EventLoop* loop = m_baseLoop;
     if (!m_subLoops.empty()) {
@@ -57,10 +58,8 @@ std::vector<EventLoop*> EventLoopThreadPool::getAllLoops() {
     assert(m_started);
 
     if (m_subLoops.empty()) {
-        return std::vector<EventLoop*>(1, m_baseLoop);
-    } else {
-        return m_subLoops;
+        return std::vector(1, m_baseLoop);
     }
+    return m_subLoops;
 }
-
-}  // namespace zmuduo::net
+} // namespace zmuduo::net

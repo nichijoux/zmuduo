@@ -3,8 +3,6 @@
 #ifndef ZMUDUO_BASE_UTILS_FS_UTIL_H
 #define ZMUDUO_BASE_UTILS_FS_UTIL_H
 
-#include "zmuduo/base/nocopyable.h"
-#include "zmuduo/base/nomoveable.h"
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -53,7 +51,6 @@
  * @endcode
  */
 namespace zmuduo::utils::fs_util {
-
 /**
  * @brief 检查文件或目录是否存在。
  * @param[in] path 文件或目录路径。
@@ -86,7 +83,9 @@ bool Delete(const std::filesystem::path& path);
  * @retval true 复制成功。
  * @retval false 复制失败（如源路径不存在或目标路径不可写）。
  */
-bool Copy(const std::filesystem::path& src, const std::filesystem::path& dst, bool overwrite = true);
+bool Copy(const std::filesystem::path& src,
+          const std::filesystem::path& dst,
+          bool                         overwrite = true);
 
 /**
  * @brief 移动或重命名文件或目录。
@@ -111,7 +110,8 @@ uintmax_t GetFileSize(const std::filesystem::path& file);
  * @param[in] maxBytes 可选的最大读取字节数（默认读取全部）。
  * @return 文件内容字符串，失败时返回空字符串。
  */
-std::string ReadText(const std::filesystem::path& file, std::optional<size_t> maxBytes = std::nullopt);
+std::string ReadText(const std::filesystem::path& file,
+                     std::optional<size_t>        maxBytes = std::nullopt);
 
 /**
  * @brief 写入字符串到文件（覆盖模式）。
@@ -151,7 +151,8 @@ std::time_t GetLastModifiedTime(const std::filesystem::path& path);
  * @param[in] recursive 是否递归列出子目录（默认 false）。
  * @return 文件和目录路径列表，不存在时返回空列表。
  */
-std::vector<std::filesystem::path> ListFiles(const std::filesystem::path& dir, bool recursive = false);
+std::vector<std::filesystem::path> ListFiles(const std::filesystem::path& dir,
+                                             bool                         recursive = false);
 
 /**
  * @brief 规范化路径（处理 `.`, `..`, 多余分隔符）。
@@ -173,7 +174,6 @@ std::filesystem::path GetDirectory(const std::filesystem::path& path);
  * @return 文件名（如 "/a/b/c.txt" -> "c.txt"）。
  */
 std::filesystem::path GetName(const std::filesystem::path& path);
-
-}  // namespace zmuduo::utils::fs_util
+} // namespace zmuduo::utils::fs_util
 
 #endif

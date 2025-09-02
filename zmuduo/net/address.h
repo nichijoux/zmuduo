@@ -11,7 +11,6 @@
 #include <map>
 #include <memory>
 #include <netinet/in.h>
-#include <ostream>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -20,14 +19,13 @@
 #include <vector>
 
 namespace zmuduo::net {
-
 class IPAddress;
 
 /**
  * @brief 网络地址的基类,抽象类
  */
 class Address {
-  public:
+public:
     using Ptr = std::shared_ptr<Address>;
 
     /**
@@ -84,11 +82,12 @@ class Address {
      * @brief 获取指定网卡的地址信息
      * @param[out] result 保存该网卡的地址和子网掩码位数
      * @param[in] iface 网卡名称
+     * @param[in] family 协议族（默认 IPv4）
      * @retval true 获取成功
      * @retval false 获取失败
      */
     static bool GetInterfaceAddresses(std::vector<std::pair<Address::Ptr, uint32_t>>& result,
-                                      const std::string&                              iface,
+                                      const std::string& iface,
                                       int family = AF_INET);
 
     /**
@@ -155,7 +154,7 @@ class Address {
  * @brief 表示IP地址的抽象基类，继承自Address。
  */
 class IPAddress : public Address {
-  public:
+public:
     using Ptr = std::shared_ptr<IPAddress>;
 
     /**
@@ -204,8 +203,8 @@ class IPAddress : public Address {
  * @class IPv4Address
  * @brief IPv4地址类，继承自IPAddress。
  */
-class IPv4Address : public IPAddress {
-  public:
+class IPv4Address final : public IPAddress {
+public:
     using Ptr = std::shared_ptr<IPv4Address>;
 
     /**
@@ -220,7 +219,8 @@ class IPv4Address : public IPAddress {
      * @brief 使用sockaddr_in结构体构造IPv4地址
      * @param[in] address IPv4格式的sockaddr结构体
      */
-    explicit IPv4Address(const sockaddr_in& address) : m_addr(address) {}
+    explicit IPv4Address(const sockaddr_in& address)
+        : m_addr(address) {}
 
     /**
      * @brief 使用原始IP和端口构造IPv4地址
@@ -236,14 +236,14 @@ class IPv4Address : public IPAddress {
 
     IPAddress::Ptr getBroadcastAddress(uint32_t length) override;
     IPAddress::Ptr getNetworkAddress(uint32_t length) override;
-    IPAddress::Ptr getSubnetMask(uint32_t prefix_len) override;
+    IPAddress::Ptr getSubnetMask(uint32_t prefixLen) override;
 
     uint32_t getPort() const override;
     void     setPort(uint16_t v) override;
 
     std::ostream& dump(std::ostream& os) const override;
 
-  private:
+private:
     sockaddr_in m_addr;
 };
 
@@ -251,8 +251,8 @@ class IPv4Address : public IPAddress {
  * @class IPv6Address
  * @brief IPv6地址类，继承自IPAddress。
  */
-class IPv6Address : public IPAddress {
-  public:
+class IPv6Address final : public IPAddress {
+public:
     typedef std::shared_ptr<IPv6Address> Ptr;
     /**
      * @brief 通过IPv6地址字符串构造IPv6Address
@@ -286,19 +286,19 @@ class IPv6Address : public IPAddress {
 
     IPAddress::Ptr getBroadcastAddress(uint32_t length) override;
     IPAddress::Ptr getNetworkAddress(uint32_t length) override;
-    IPAddress::Ptr getSubnetMask(uint32_t prefix_len) override;
+    IPAddress::Ptr getSubnetMask(uint32_t prefixLen) override;
     uint32_t       getPort() const override;
     void           setPort(uint16_t v) override;
 
-  private:
-    sockaddr_in6 m_addr;  ///< IPv6地址结构体
+private:
+    sockaddr_in6 m_addr; ///< IPv6地址结构体
 };
 
 /**
  * @brief Unix 本地套接字地址类，继承自Address。
  */
-class UnixAddress : public Address {
-  public:
+class UnixAddress final : public Address {
+public:
     using Ptr = std::shared_ptr<UnixAddress>;
 
     /**
@@ -333,17 +333,17 @@ class UnixAddress : public Address {
 
     std::ostream& dump(std::ostream& os) const override;
 
-  private:
-    sockaddr_un m_addr;    ///< Unix 套接字地址结构体
-    socklen_t   m_length;  ///< 地址长度
+private:
+    sockaddr_un m_addr;   ///< Unix 套接字地址结构体
+    socklen_t   m_length; ///< 地址长度
 };
 
 /**
  * @class UnknownAddress
  * @brief 未知类型地址，通常用于未识别协议族。
  */
-class UnknownAddress : public Address {
-  public:
+class UnknownAddress final : public Address {
+public:
     using Ptr = std::shared_ptr<UnknownAddress>;
 
     /**
@@ -356,7 +356,8 @@ class UnknownAddress : public Address {
      * @brief 使用sockaddr构造未知地址
      * @param[in] addr 未知类型的原始地址结构体
      */
-    explicit UnknownAddress(const sockaddr& addr) : m_addr(addr) {}
+    explicit UnknownAddress(const sockaddr& addr)
+        : m_addr(addr) {}
 
     const sockaddr* getSockAddress() const override;
     sockaddr*       getSockAddress() override;
@@ -364,10 +365,9 @@ class UnknownAddress : public Address {
 
     std::ostream& dump(std::ostream& os) const override;
 
-  private:
-    sockaddr m_addr;  ///< 原始地址结构体
+private:
+    sockaddr m_addr; ///< 原始地址结构体
 };
-
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

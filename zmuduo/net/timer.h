@@ -31,7 +31,10 @@ namespace zmuduo::net {
  * @endcode
  */
 class Timer : NoCopyable {
-  public:
+public:
+    using Ptr = std::shared_ptr<Timer>;
+
+public:
     /**
      * @brief 构造函数
      * @param[in] callback 定时器回调函数
@@ -87,15 +90,15 @@ class Timer : NoCopyable {
         return m_sequence;
     }
 
-  private:
-    static std::atomic<int64_t> S_NUM_CREATED;  ///< 定时器创建计数器(原子变量)
-  private:
-    const TimerCallback m_callback;    ///< 定时器触发时执行的回调函数
-    Timestamp           m_expiration;  ///< 定时器触发的时间点
-    const double        m_interval;    ///< 重复间隔(秒)，0表示不重复
-    const bool          m_repeat;      ///< 是否重复执行的标志
-    const int64_t       m_sequence;    ///< 定时器唯一序列号
+private:
+    static std::atomic<int64_t> S_NUM_CREATED; ///< 定时器创建计数器(原子变量)
+private:
+    const TimerCallback m_callback;   ///< 定时器触发时执行的回调函数
+    Timestamp           m_expiration; ///< 定时器触发的时间点
+    const double        m_interval;   ///< 重复间隔(秒)，0表示不重复
+    const bool          m_repeat;     ///< 是否重复执行的标志
+    const int64_t       m_sequence;   ///< 定时器唯一序列号
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

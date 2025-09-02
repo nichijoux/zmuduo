@@ -40,7 +40,7 @@ namespace zmuduo::net::http::ws {
  * @endcode
  */
 class WSClient : NoCopyable {
-  public:
+public:
     /// @brief 智能指针
     using Ptr = std::shared_ptr<WSClient>;
     /// @brief 收到websocket信息的回调
@@ -48,7 +48,7 @@ class WSClient : NoCopyable {
     /// @brief ws连接建立和断开的回调
     using WSConnectionCallback = std::function<void(bool)>;
 
-  public:
+public:
     /**
      * @brief 构造函数，通过 URI 字符串创建客户端。
      * @param[in,out] loop 所属事件循环
@@ -226,7 +226,7 @@ class WSClient : NoCopyable {
         }
     }
 
-  private:
+private:
     /**
      * @brief 发起 WebSocket 握手请求。
      */
@@ -241,10 +241,10 @@ class WSClient : NoCopyable {
      * @brief 当前连接的状态机枚举。
      */
     enum class State {
-        NONE,      ///< 初始状态，未建立任何连接
-        TCP,       ///< 已建立 TCP 连接，未进行 HTTP 握手
-        HTTP,      ///< 正在进行 HTTP 握手
-        WEBSOCKET  ///< 握手成功，进入 WebSocket 通信阶段
+        NONE,     ///< 初始状态，未建立任何连接
+        TCP,      ///< 已建立 TCP 连接，未进行 HTTP 握手
+        HTTP,     ///< 正在进行 HTTP 握手
+        WEBSOCKET ///< 握手成功，进入 WebSocket 通信阶段
     };
 
     /**
@@ -262,17 +262,17 @@ class WSClient : NoCopyable {
     void
     onMessage(const TcpConnectionPtr& connection, Buffer& buffer, const Timestamp& receiveTime);
 
-  private:
-    State       m_state;   ///< 当前连接状态
-    TcpClient   m_client;  ///< tcp客户端
-    std::string m_key;     ///< 用于tcp通信的key
-    std::string m_path;    ///< 请求地址
-    std::set<WSSubProtocol::Ptr, WSSubProtocolCompare> m_supportProtocols;  ///< 所支持使用的子协议
-    WSSubProtocol::Ptr   m_useProtocol;         ///< 当前选择的子协议
-    WSConnectionCallback m_connectionCallback;  ///< ws连接的回调
-    WSMessageCallback    m_messageCallback;     ///< ws收到消息的回调
-    WSFrameParser        m_parser;              ///< websocket数据帧的解析器
+private:
+    State                                              m_state = State::NONE; ///< 当前连接状态
+    TcpClient                                          m_client;              ///< tcp客户端
+    std::string                                        m_key;                 ///< 用于tcp通信的key
+    std::string                                        m_path = "/";          ///< 请求地址
+    std::set<WSSubProtocol::Ptr, WSSubProtocolCompare> m_supportProtocols;    ///< 所支持使用的子协议
+    WSSubProtocol::Ptr                                 m_useProtocol;         ///< 当前选择的子协议
+    WSConnectionCallback                               m_connectionCallback;  ///< ws连接的回调
+    WSMessageCallback                                  m_messageCallback;     ///< ws收到消息的回调
+    WSFrameParser                                      m_parser;              ///< websocket数据帧的解析器
 };
-}  // namespace zmuduo::net::http::ws
+} // namespace zmuduo::net::http::ws
 
 #endif

@@ -9,7 +9,6 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace zmuduo::net::http {
@@ -148,7 +147,7 @@ enum class HttpMethod {
 #define XX(num, name, string) name = (num),
     HTTP_METHOD_MAP(XX)
 #undef XX
-        INVALID_METHOD
+    INVALID_METHOD
 };
 
 /**
@@ -258,7 +257,7 @@ T getAs(const MapType& map, const std::string& key, const T& def = T()) {
  * @endcode
  */
 class HttpRequest : public Copyable {
-  public:
+public:
     /**
      * @typedef std::map&lt;std::string, std::string, CaseInsensitiveLess&gt;
      * @brief HTTP 头部和参数的 Map 类型，忽略大小写。
@@ -289,7 +288,7 @@ class HttpRequest : public Copyable {
      * @brief 设置请求方法。
      * @param[in] method HTTP 方法枚举值。
      */
-    void setMethod(HttpMethod method) {
+    void setMethod(const HttpMethod method) {
         m_method = method;
     }
 
@@ -305,7 +304,7 @@ class HttpRequest : public Copyable {
      * @brief 设置 HTTP 版本。
      * @param[in] version 版本号。
      */
-    void setVersion(uint8_t version) {
+    void setVersion(const uint8_t version) {
         m_version = version;
     }
 
@@ -322,7 +321,7 @@ class HttpRequest : public Copyable {
      * @brief 设置连接是否关闭。
      * @param[in] close 是否关闭连接。
      */
-    void setClose(bool close) {
+    void setClose(const bool close) {
         m_close = close;
     }
 
@@ -338,7 +337,7 @@ class HttpRequest : public Copyable {
      * @brief 设置是否为 WebSocket 请求。
      * @param[in] websocket 是否为 WebSocket。
      */
-    void setWebsocket(bool websocket) {
+    void setWebsocket(const bool websocket) {
         m_websocket = websocket;
     }
 
@@ -652,18 +651,18 @@ class HttpRequest : public Copyable {
         return os;
     }
 
-  private:
-    HttpMethod  m_method;     ///< HTTP 方法
-    uint8_t     m_version;    ///< HTTP 版本
-    bool        m_close;      ///< 是否关闭连接
-    bool        m_websocket;  ///< 是否为 WebSocket 请求
-    std::string m_path;       ///< 请求路径
-    std::string m_query;      ///< 查询参数
-    std::string m_fragment;   ///< 片段标识符
-    std::string m_body;       ///< 消息体
-    Map         m_headers;    ///< 头部 Map
-    Map         m_params;     ///< 参数 Map
-    Map         m_cookies;    ///< Cookie Map
+private:
+    HttpMethod  m_method;    ///< HTTP 方法
+    uint8_t     m_version;   ///< HTTP 版本
+    bool        m_close;     ///< 是否关闭连接
+    bool        m_websocket; ///< 是否为 WebSocket 请求
+    std::string m_path;      ///< 请求路径
+    std::string m_query;     ///< 查询参数
+    std::string m_fragment;  ///< 片段标识符
+    std::string m_body;      ///< 消息体
+    Map         m_headers;   ///< 头部 Map
+    Map         m_params;    ///< 参数 Map
+    Map         m_cookies;   ///< Cookie Map
 };
 
 /**
@@ -687,7 +686,7 @@ class HttpRequest : public Copyable {
  * @endcode
  */
 class HttpResponse : public Copyable {
-  public:
+public:
     /**
      * @typedef std::map&lt;std::string, std::string, CaseInsensitiveLess&gt;
      * @brief HTTP 头部 Map 类型，忽略大小写。
@@ -700,7 +699,7 @@ class HttpResponse : public Copyable {
      */
     using Ptr = std::shared_ptr<HttpResponse>;
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] version HTTP 版本（如 0x11 表示 1.1）。
@@ -720,7 +719,7 @@ class HttpResponse : public Copyable {
      * @brief 设置响应状态码。
      * @param[in] status HTTP 状态码枚举值。
      */
-    void setStatus(HttpStatus status) {
+    void setStatus(const HttpStatus status) {
         m_status = status;
     }
 
@@ -736,7 +735,7 @@ class HttpResponse : public Copyable {
      * @brief 设置 HTTP 版本。
      * @param[in] version 版本号。
      */
-    void setVersion(uint8_t version) {
+    void setVersion(const uint8_t version) {
         m_version = version;
     }
 
@@ -752,7 +751,7 @@ class HttpResponse : public Copyable {
      * @brief 设置连接是否关闭。
      * @param[in] close 是否关闭连接。
      */
-    void setClose(bool close) {
+    void setClose(const bool close) {
         m_close = close;
     }
 
@@ -768,7 +767,7 @@ class HttpResponse : public Copyable {
      * @brief 设置是否为 WebSocket 响应。
      * @param[in] isWebsocket 是否为 WebSocket。
      */
-    void setWebSocket(bool isWebsocket) {
+    void setWebSocket(const bool isWebsocket) {
         m_websocket = isWebsocket;
     }
 
@@ -911,17 +910,16 @@ class HttpResponse : public Copyable {
         return os;
     }
 
-  private:
-    HttpStatus               m_status;     ///< 响应状态码
-    uint8_t                  m_version;    ///< HTTP 版本
-    bool                     m_close;      ///< 是否关闭连接
-    bool                     m_websocket;  ///< 是否为 WebSocket 响应
-    std::string              m_body;       ///< 消息体
-    std::string              m_reason;     ///< 原因短语
-    Map                      m_headers;    ///< 头部 Map
-    std::vector<std::string> m_cookies;    ///< Cookie 列表
+private:
+    HttpStatus               m_status;    ///< 响应状态码
+    uint8_t                  m_version;   ///< HTTP 版本
+    bool                     m_close;     ///< 是否关闭连接
+    bool                     m_websocket; ///< 是否为 WebSocket 响应
+    std::string              m_body;      ///< 消息体
+    std::string              m_reason;    ///< 原因短语
+    Map                      m_headers;   ///< 头部 Map
+    std::vector<std::string> m_cookies;   ///< Cookie 列表
 };
-
-};  // namespace zmuduo::net::http
+}; // namespace zmuduo::net::http
 
 #endif

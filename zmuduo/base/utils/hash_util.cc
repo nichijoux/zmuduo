@@ -7,40 +7,67 @@
 #include <random>
 
 namespace {
-inline static uint32_t F(uint32_t x, uint32_t y, uint32_t z) {
+uint32_t F(const uint32_t x, const uint32_t y, const uint32_t z) {
     return (x & y) | (~x & z);
 }
-inline static uint32_t G(uint32_t x, uint32_t y, uint32_t z) {
+
+uint32_t G(const uint32_t x, const uint32_t y, const uint32_t z) {
     return (x & z) | (y & ~z);
 }
-inline static uint32_t H(uint32_t x, uint32_t y, uint32_t z) {
+
+uint32_t H(const uint32_t x, const uint32_t y, const uint32_t z) {
     return x ^ y ^ z;
 }
-inline static uint32_t I(uint32_t x, uint32_t y, uint32_t z) {
+
+uint32_t I(const uint32_t x, const uint32_t y, const uint32_t z) {
     return y ^ (x | ~z);
 }
 
-inline static uint32_t rotate_left(uint32_t x, int n) {
+uint32_t rotate_left(const uint32_t x, const int n) {
     return (x << n) | (x >> (32 - n));
 }
 
-inline static void
-FF(uint32_t& a, uint32_t b, uint32_t c, uint32_t d, uint32_t x, uint32_t s, uint32_t ac) {
+void
+FF(uint32_t&      a,
+   const uint32_t b,
+   const uint32_t c,
+   const uint32_t d,
+   const uint32_t x,
+   const uint32_t s,
+   const uint32_t ac) {
     a = rotate_left(a + F(b, c, d) + x + ac, s) + b;
 }
 
-inline static void
-GG(uint32_t& a, uint32_t b, uint32_t c, uint32_t d, uint32_t x, uint32_t s, uint32_t ac) {
+void
+GG(uint32_t&      a,
+   const uint32_t b,
+   const uint32_t c,
+   const uint32_t d,
+   const uint32_t x,
+   const uint32_t s,
+   const uint32_t ac) {
     a = rotate_left(a + G(b, c, d) + x + ac, s) + b;
 }
 
-inline static void
-HH(uint32_t& a, uint32_t b, uint32_t c, uint32_t d, uint32_t x, uint32_t s, uint32_t ac) {
+void
+HH(uint32_t&      a,
+   const uint32_t b,
+   const uint32_t c,
+   const uint32_t d,
+   const uint32_t x,
+   const uint32_t s,
+   const uint32_t ac) {
     a = rotate_left(a + H(b, c, d) + x + ac, s) + b;
 }
 
-inline static void
-II(uint32_t& a, uint32_t b, uint32_t c, uint32_t d, uint32_t x, uint32_t s, uint32_t ac) {
+void
+II(uint32_t&      a,
+   const uint32_t b,
+   const uint32_t c,
+   const uint32_t d,
+   const uint32_t x,
+   const uint32_t s,
+   const uint32_t ac) {
     a = rotate_left(a + I(b, c, d) + x + ac, s) + b;
 }
 
@@ -68,8 +95,8 @@ void md5decode(uint32_t output[], const uint8_t input[]) {
  * @param[in] word 原始 32 位整数。
  * @return 左移后的结果。
  */
-inline uint32_t SHA1CircularShift(uint32_t bits, uint32_t word) {
-    return ((word << bits) | (word >> (32 - bits)));
+uint32_t SHA1CircularShift(const uint32_t bits, const uint32_t word) {
+    return (word << bits) | (word >> (32 - bits));
 }
 
 /**
@@ -79,7 +106,6 @@ inline uint32_t SHA1CircularShift(uint32_t bits, uint32_t word) {
  * @param[in] buffer 64 字节输入块。
  */
 void SHA1Transform(uint32_t state[5], const uint8_t buffer[64]) {
-    uint32_t a, b, c, d, e;
     uint32_t w[80];
 
     // Initialize the first 16 words in the array W
@@ -94,11 +120,11 @@ void SHA1Transform(uint32_t state[5], const uint8_t buffer[64]) {
     }
 
     // Initialize working variables
-    a = state[0];
-    b = state[1];
-    c = state[2];
-    d = state[3];
-    e = state[4];
+    uint32_t a = state[0];
+    uint32_t b = state[1];
+    uint32_t c = state[2];
+    uint32_t d = state[3];
+    uint32_t e = state[4];
 
     // Main loop
     for (int i = 0; i < 80; ++i) {
@@ -117,12 +143,12 @@ void SHA1Transform(uint32_t state[5], const uint8_t buffer[64]) {
             k = 0xCA62C1D6;
         }
 
-        uint32_t temp = SHA1CircularShift(5, a) + f + e + k + w[i];
-        e             = d;
-        d             = c;
-        c             = SHA1CircularShift(30, b);
-        b             = a;
-        a             = temp;
+        const uint32_t temp = SHA1CircularShift(5, a) + f + e + k + w[i];
+        e                   = d;
+        d                   = c;
+        c                   = SHA1CircularShift(30, b);
+        b                   = a;
+        a                   = temp;
     }
 
     // Update the state
@@ -172,7 +198,7 @@ void md5Process(const uint8_t* block, uint32_t& A, uint32_t& B, uint32_t& C, uin
     // 第一轮（Round 1）
     // 使用 F 逻辑函数，每步依赖前一步结果
     // ===================
-    FF(a, b, c, d, x[0], 7, 0xd76aa478);  // 每步包含常量、旋转量和输入块数据
+    FF(a, b, c, d, x[0], 7, 0xd76aa478); // 每步包含常量、旋转量和输入块数据
     FF(d, a, b, c, x[1], 12, 0xe8c7b756);
     FF(c, d, a, b, x[2], 17, 0x242070db);
     FF(b, c, d, a, x[3], 22, 0xc1bdceee);
@@ -258,15 +284,15 @@ void md5Process(const uint8_t* block, uint32_t& A, uint32_t& B, uint32_t& C, uin
     C += c;
     D += d;
 }
-}  // namespace
+} // namespace
 
 namespace zmuduo::utils::hash_util {
-std::string Base64decode(std::string_view src) {
-    static const signed char decodingTable[] = {
+std::string Base64decode(const std::string_view src) {
+    static constexpr signed char decodingTable[] = {
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62,
         -1, -1, -1, 63, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1, -1, 0,
-        1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
         23, 24, 25, -1, -1, -1, -1, -1, -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
         39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -277,7 +303,7 @@ std::string Base64decode(std::string_view src) {
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     };
 
-    size_t len = src.size();
+    const size_t len = src.size();
     if (len % 4 != 0) {
         return {};
     }
@@ -291,23 +317,25 @@ std::string Base64decode(std::string_view src) {
     }
 
     std::string decoded;
-    decoded.reserve((len / 4) * 3 - padding);
+    decoded.reserve(len / 4 * 3 - padding);
 
     for (size_t i = 0; i < len; i += 4) {
-        uint32_t sextet_a = src[i] == '=' ? 0 : decodingTable[static_cast<unsigned char>(src[i])];
-        uint32_t sextet_b =
+        const uint32_t sextetA = src[i] == '=' ?
+                                     0 :
+                                     decodingTable[static_cast<unsigned char>(src[i])];
+        const uint32_t sextetB =
             src[i + 1] == '=' ? 0 : decodingTable[static_cast<unsigned char>(src[i + 1])];
-        uint32_t sextet_c =
+        const uint32_t sextetC =
             src[i + 2] == '=' ? 0 : decodingTable[static_cast<unsigned char>(src[i + 2])];
-        uint32_t sextet_d =
+        const uint32_t sextetD =
             src[i + 3] == '=' ? 0 : decodingTable[static_cast<unsigned char>(src[i + 3])];
 
-        if (sextet_a == -1 || sextet_b == -1 || (src[i + 2] != '=' && sextet_c == -1) ||
-            (src[i + 3] != '=' && sextet_d == -1)) {
+        if (sextetA == -1 || sextetB == -1 || (src[i + 2] != '=' && sextetC == -1) ||
+            (src[i + 3] != '=' && sextetD == -1)) {
             return {};
         }
 
-        uint32_t triple = (sextet_a << 18) + (sextet_b << 12) + (sextet_c << 6) + sextet_d;
+        const uint32_t triple = (sextetA << 18) + (sextetB << 12) + (sextetC << 6) + sextetD;
 
         decoded.push_back(static_cast<char>((triple >> 16) & 0xFF));
         if (src[i + 2] != '=')
@@ -319,23 +347,23 @@ std::string Base64decode(std::string_view src) {
     return decoded;
 }
 
-std::string Base64encode(const void* data, size_t length) {
-    static const char encodingTable[] =
+std::string Base64encode(const void* data, const size_t length) {
+    static constexpr char encodingTable[] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    const auto* bytes = reinterpret_cast<const unsigned char*>(data);
+    const auto* bytes = static_cast<const unsigned char*>(data);
     // 边界处理
     if (length == 0) {
         return {};
     }
     std::string encoded;
-    encoded.reserve(((length + 2) / 3) * 4);
+    encoded.reserve((length + 2) / 3 * 4);
 
     for (size_t i = 0; i < length;) {
-        uint32_t octet_a = i < length ? bytes[i++] : 0;
-        uint32_t octet_b = i < length ? bytes[i++] : 0;
-        uint32_t octet_c = i < length ? bytes[i++] : 0;
+        const uint32_t octetA = i < length ? bytes[i++] : 0;
+        const uint32_t octetB = i < length ? bytes[i++] : 0;
+        const uint32_t octetC = i < length ? bytes[i++] : 0;
 
-        uint32_t triple = (octet_a << 16) + (octet_b << 8) + octet_c;
+        const uint32_t triple = (octetA << 16) + (octetB << 8) + octetC;
 
         encoded.push_back(encodingTable[(triple >> 18) & 0x3F]);
         encoded.push_back(encodingTable[(triple >> 12) & 0x3F]);
@@ -343,8 +371,7 @@ std::string Base64encode(const void* data, size_t length) {
         encoded.push_back(i > length ? '=' : encodingTable[triple & 0x3F]);
     }
 
-    size_t mod = length % 3;
-    if (mod > 0) {
+    if (const size_t mod = length % 3; mod > 0) {
         encoded[encoded.size() - 1] = '=';
         if (mod == 1) {
             encoded[encoded.size() - 2] = '=';
@@ -353,14 +380,14 @@ std::string Base64encode(const void* data, size_t length) {
     return encoded;
 }
 
-std::string HexToBinary(std::string_view hex) {
+std::string HexToBinary(const std::string_view hex) {
     std::vector<unsigned char> binary;
-    binary.reserve(hex.size() / 2);  // 预分配空间
+    binary.reserve(hex.size() / 2); // 预分配空间
 
     for (size_t i = 0; i < hex.size(); i += 2) {
         unsigned char byte = 0;
-        auto [ptr, ec]     = std::from_chars(hex.data() + i, hex.data() + i + 2, byte, 16);
-        if (ec != std::errc() || ptr != hex.data() + i + 2) {
+        if (auto [ptr, ec] = std::from_chars(hex.data() + i, hex.data() + i + 2, byte, 16);
+            ec != std::errc() || ptr != hex.data() + i + 2) {
             return "";
         }
         binary.push_back(byte);
@@ -368,10 +395,10 @@ std::string HexToBinary(std::string_view hex) {
     return {binary.begin(), binary.end()};
 }
 
-std::string SHA1sum(const void* data, size_t length) {
-    uint32_t state[5] = {0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0};
-    uint8_t  buffer[64];
-    uint64_t message_len_bits = length * 8;
+std::string SHA1sum(const void* data, const size_t length) {
+    uint32_t       state[5] = {0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0};
+    uint8_t        buffer[64];
+    const uint64_t messageLenBits = length * 8;
 
     const auto* ptr       = static_cast<const uint8_t*>(data);
     size_t      remaining = length;
@@ -391,26 +418,28 @@ std::string SHA1sum(const void* data, size_t length) {
 
     // Pad the remaining block (must be <= 56 bytes to fit the 8-byte length)
     if (remaining < 56) {
-        buffer[remaining] = 0x80;                           // Append '1' bit
-        std::fill(buffer + remaining + 1, buffer + 56, 0);  // Pad with zeros
+        buffer[remaining] = 0x80;                          // Append '1' bit
+        std::fill(buffer + remaining + 1, buffer + 56, 0); // Pad with zeros
     } else {
         // If remaining >= 56, we need an extra block
         buffer[remaining] = 0x80;
         std::fill(buffer + remaining + 1, buffer + 64, 0);
         SHA1Transform(state, buffer);
-        std::fill(buffer, buffer + 56, 0);  // New block starts with zeros
+        std::fill_n(buffer, 56, 0); // New block starts with zeros
     }
 
     // Append the original message length (in bits) as a 64-bit big-endian integer
     for (int i = 0; i < 8; ++i) {
-        buffer[56 + i] = (message_len_bits >> (56 - 8 * i)) & 0xFF;
+        buffer[56 + i] = (messageLenBits >> (56 - 8 * i)) & 0xFF;
     }
 
     SHA1Transform(state, buffer);
     return SHA1Final(state);
 }
 
-std::string MD5(const std::string& input, int bitLength /* = 32 */, bool toUpper /* = false */) {
+std::string MD5(const std::string& input,
+                const int          bitLength /* = 32 */,
+                const bool         toUpper /* = false */) {
     // 初始化
     uint32_t A = 0x67452301;
     uint32_t B = 0xefcdab89;
@@ -418,12 +447,12 @@ std::string MD5(const std::string& input, int bitLength /* = 32 */, bool toUpper
     uint32_t D = 0x10325476;
 
     // 消息填充
-    size_t               inputLen = input.size();
-    size_t               newLen   = ((inputLen + 8) / 64 + 1) * 64;
+    const size_t         inputLen = input.size();
+    const size_t         newLen   = ((inputLen + 8) / 64 + 1) * 64;
     std::vector<uint8_t> buffer(newLen, 0);
     std::memcpy(buffer.data(), input.c_str(), inputLen);
-    buffer[inputLen] = 0x80;
-    uint64_t bitLen  = inputLen * 8;
+    buffer[inputLen]      = 0x80;
+    const uint64_t bitLen = inputLen * 8;
     std::memcpy(&buffer[newLen - 8], &bitLen, 8);
 
     for (size_t i = 0; i < newLen; i += 64) {
@@ -432,7 +461,7 @@ std::string MD5(const std::string& input, int bitLength /* = 32 */, bool toUpper
 
     // 输出摘要
     uint8_t digest[16];
-    md5encode(digest, std::vector<uint32_t>{A, B, C, D}.data());
+    md5encode(digest, std::vector{A, B, C, D}.data());
 
     std::ostringstream oss;
     for (int i = 0; i < 16; ++i) {
@@ -444,7 +473,6 @@ std::string MD5(const std::string& input, int bitLength /* = 32 */, bool toUpper
     if (bitLength == 16) {
         md5str = md5str.substr(8, 16);
     }
-
     if (toUpper) {
         std::transform(md5str.begin(), md5str.end(), md5str.begin(), ::toupper);
     }
@@ -452,13 +480,13 @@ std::string MD5(const std::string& input, int bitLength /* = 32 */, bool toUpper
     return md5str;
 }
 
-std::string RandomString(size_t length) {
+std::string RandomString(const size_t length) {
     // 使用随机设备作为种子
     std::random_device rd;
     // 使用Mersenne Twister引擎
     std::mt19937 gen(rd());
     // 定义分布范围：0-127
-    std::uniform_int_distribution<int> dist(0, 127);
+    std::uniform_int_distribution dist(0, 127);
 
     std::string result;
     // 预分配空间提高效率
@@ -471,4 +499,4 @@ std::string RandomString(size_t length) {
 
     return result;
 }
-}  // namespace zmuduo::utils::hash_util
+} // namespace zmuduo::utils::hash_util

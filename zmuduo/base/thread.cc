@@ -9,7 +9,7 @@ namespace zmuduo::thread {
 std::atomic<int> Thread::S_NUM_CREATED(0);
 
 void Thread::setDefaultName() {
-    int num = ++S_NUM_CREATED;
+    const int num = ++S_NUM_CREATED;
     if (m_name.empty()) {
         char buffer[32];
         snprintf(buffer, sizeof(buffer), "Thread - %d", num);
@@ -18,10 +18,7 @@ void Thread::setDefaultName() {
 }
 
 Thread::Thread(Task task, std::string name)
-    : m_started(false),
-      m_joined(false),
-      m_thread(),
-      m_tid(0),
+    : m_tid(0),
       m_task(std::move(task)),
       m_name(std::move(name)) {
     setDefaultName();
@@ -39,7 +36,7 @@ void Thread::start() {
     m_started = true;
     // 启动线程执行任务,通过信号量设置线程的id
     Semaphore semaphore;
-    m_thread = std::thread([&]() {
+    m_thread = std::thread([&] {
         try {
             // 获取线程的id
             m_tid = utils::system_util::GetTid();
@@ -60,5 +57,4 @@ void Thread::join() {
     m_joined = true;
     m_thread.join();
 }
-
-}  // namespace zmuduo::thread
+} // namespace zmuduo::thread

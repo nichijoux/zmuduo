@@ -46,7 +46,7 @@ class TimerId;
  * @endcode
  */
 class TimerQueue : NoCopyable {
-  public:
+public:
     /**
      * @brief 构造函数
      * @param[in] loop 所属的事件循环对象
@@ -80,7 +80,7 @@ class TimerQueue : NoCopyable {
      */
     void cancel(const TimerId& timerId);
 
-  private:
+private:
     /// @brief 定时器条目类型(过期时间, Timer指针, 序列号)
     using Entry = std::tuple<Timestamp, std::shared_ptr<Timer>, int64_t>;
     /// @brief 定时器集合类型(按过期时间排序)
@@ -129,14 +129,14 @@ class TimerQueue : NoCopyable {
      */
     bool insert(const std::shared_ptr<Timer>& timer);
 
-  private:
-    EventLoop* m_eventLoop;             ///< 所属的事件循环
-    const int  m_timerFD;               ///< 定时器文件描述符
-    Channel    m_timerChannel;          ///< 定时器对应的Channel
-    TimerSet   m_timers;                ///< 按过期时间排序的定时器集合
-    TimerSet   m_cancelingTimers;       ///< 正在取消的定时器集合
-    bool       m_callingExpiredTimers;  ///< 是否正在处理到期定时器
+private:
+    EventLoop* m_eventLoop;            ///< 所属的事件循环
+    const int  m_timerFD;              ///< 定时器文件描述符
+    Channel    m_timerChannel;         ///< 定时器对应的Channel
+    TimerSet   m_timers;               ///< 按过期时间排序的定时器集合
+    TimerSet   m_cancelingTimers;      ///< 正在取消的定时器集合
+    bool       m_callingExpiredTimers; ///< 是否正在处理到期定时器
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

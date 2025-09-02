@@ -19,7 +19,7 @@ thread_local zmuduo::net::EventLoop* t_loopInThisThread = nullptr;
 /**
  * poll等待的超时时间
  */
-const int POLL_TIMEMS = 10000;
+constexpr int POLL_TIMEMS = 10000;
 
 /**
  * 创建一个事件文件描述符
@@ -30,7 +30,7 @@ int createEventFD() {
     // 参数0表示初始值为0
     // EFD_NONBLOCK表示以非阻塞模式打开文件描述符
     // EFD_CLOEXEC表示在执行exec类函数时自动关闭文件描述符
-    int fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    const int fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     // 检查文件描述符是否创建成功
     // 如果fd小于0，表示创建失败
     if (fd < 0) {
@@ -48,7 +48,7 @@ int createEventFD() {
  * @brief 忽略SIGPIPE信号
  */
 class IgnoreSigPipe {
-  public:
+public:
     IgnoreSigPipe() {
         ::signal(SIGPIPE, SIG_IGN);
     }
@@ -56,23 +56,17 @@ class IgnoreSigPipe {
 #pragma GCC diagnostic error "-Wold-style-cast"
 
 IgnoreSigPipe _initObject;
-}  // namespace
+} // namespace
 
 namespace zmuduo::net {
 using namespace utils::system_util;
 
 EventLoop::EventLoop()
-    : m_looping(false),
-      m_quit(false),
-      m_iteration(0),
-      m_callingPendingFunctors(false),
-      m_threadId(GetTid()),
-      m_eventHandling(false),
+    : m_threadId(GetTid()),
       m_poller(Poller::newPoller(this)),
+      m_timerQueue(std::make_unique<TimerQueue>(this)),
       m_wakeupFd(createEventFD()),
-      m_wakeupChannel(std::make_unique<Channel>(this, m_wakeupFd)),
-      m_currentActiveChannel(nullptr),
-      m_timerQueue(std::make_unique<TimerQueue>(this)) {
+      m_wakeupChannel(std::make_unique<Channel>(this, m_wakeupFd)) {
     ZMUDUO_LOG_FMT_DEBUG("EventLoop created %p in thread %d", this, m_threadId);
     if (t_loopInThisThread) {
         ZMUDUO_LOG_FMT_FATAL("Another EventLoop %p Exists in this thread %d", t_loopInThisThread,
@@ -118,7 +112,7 @@ void EventLoop::loop() {
         m_pollReturnTime = m_poller->poll(POLL_TIMEMS, &m_activeChannels);
         ++m_iteration;
         m_eventHandling = true;
-        for (auto channel : m_activeChannels) {
+        for (const auto channel : m_activeChannels) {
             // 设置当前活跃的channel
             m_currentActiveChannel = channel;
             m_currentActiveChannel->handleEvent(m_pollReturnTime);
@@ -157,7 +151,7 @@ void EventLoop::runInLoop(Functor callback) {
 
 void EventLoop::queueInLoop(Functor callback) {
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard lock(m_mutex);
         m_pendingFunctors.emplace_back(std::move(callback));
     }
     // 如果不是在当前loop线程则唤醒loop线程
@@ -168,34 +162,33 @@ void EventLoop::queueInLoop(Functor callback) {
 }
 
 size_t EventLoop::getQueueSize() {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard lock(m_mutex);
     return m_pendingFunctors.size();
 }
 
-TimerId EventLoop::runAt(Timestamp time, TimerCallback cb) {
+TimerId EventLoop::runAt(const Timestamp time, TimerCallback cb) const {
     return m_timerQueue->addTimer(std::move(cb), time, 0.0);
 }
 
-TimerId EventLoop::runAfter(double delay, TimerCallback cb) {
-    Timestamp time = Timestamp::Now() + delay;
+TimerId EventLoop::runAfter(const double delay, TimerCallback cb) const {
+    const Timestamp time = Timestamp::Now() + delay;
     return runAt(time, std::move(cb));
 }
 
-TimerId EventLoop::runEvery(double interval, TimerCallback cb) {
+TimerId EventLoop::runEvery(const double interval, TimerCallback cb) const {
     return m_timerQueue->addTimer(std::move(cb), Timestamp::Now() + interval, interval);
 }
 
-void EventLoop::cancel(const TimerId& timerId) {
+void EventLoop::cancel(const TimerId& timerId) const {
     m_timerQueue->cancel(timerId);
 }
 
 void EventLoop::wakeup() const {
     // 定义一个64位无符号整数变量one，并赋值为1
-    uint64_t one = 1;
+    constexpr uint64_t one = 1;
     // 将变量one写入文件描述符m_wakeupFd
-    ssize_t n = write(m_wakeupFd, &one, sizeof(one));
     // 检查写入的字节数是否等于sizeof(one)，即8字节
-    if (n != sizeof(one)) {
+    if (const ssize_t n = write(m_wakeupFd, &one, sizeof(one)); n != sizeof(one)) {
         // 如果写入的字节数不等于8，则记录错误日志
         // LOG_ERROR是一个宏或函数，用于记录错误信息
         // 这里记录的信息是写入的字节数n不等于8
@@ -203,7 +196,7 @@ void EventLoop::wakeup() const {
     }
 }
 
-void EventLoop::updateChannel(Channel* channel) {
+void EventLoop::updateChannel(Channel* channel) const {
     assert(channel->getOwnerLoop() == this);
     assertInLoopThread();
     m_poller->updateChannel(channel);
@@ -216,8 +209,8 @@ void EventLoop::removeChannel(Channel* channel) {
         // 如果要移除的 channel 是当前正在处理的 channel
         // 或者这个 channel 不在当前活跃的 channel 列表中
         assert(m_currentActiveChannel == channel ||
-               std::find(m_activeChannels.begin(), m_activeChannels.end(), channel) ==
-                   m_activeChannels.end());
+            std::find(m_activeChannels.begin(), m_activeChannels.end(), channel) ==
+            m_activeChannels.end());
     }
     m_poller->removeChannel(channel);
 }
@@ -248,8 +241,7 @@ EventLoop* EventLoop::checkNotNull(EventLoop* loop) {
 
 void EventLoop::handleRead() const {
     uint64_t one = 1;
-    auto     n   = read(m_wakeupFd, &one, sizeof(one));
-    if (n != sizeof(one)) {
+    if (const auto n = read(m_wakeupFd, &one, sizeof(one)); n != sizeof(one)) {
         ZMUDUO_LOG_FMT_ERROR("EventLoop::handleRead() reads %ld bytes instead of 8", n);
     }
 }
@@ -261,7 +253,7 @@ void EventLoop::doPendingFunctors() {
     m_callingPendingFunctors = true;
     {
         // 创建一个互斥锁的守护对象，用于保护m_pendingFunctors的访问
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard lock(m_mutex);
         // 交换functors和m_pendingFunctors，将m_pendingFunctors中的函数对象转移到functors中
         functors.swap(m_pendingFunctors);
     }
@@ -272,4 +264,4 @@ void EventLoop::doPendingFunctors() {
     // 重置标志位，表示调用待处理的函数对象结束
     m_callingPendingFunctors = false;
 }
-}  // namespace zmuduo::net
+} // namespace zmuduo::net

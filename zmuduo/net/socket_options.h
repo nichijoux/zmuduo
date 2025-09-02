@@ -4,7 +4,6 @@
 #ifndef ZMUDUO_NET_SOCKET_OPTIONS_H
 #define ZMUDUO_NET_SOCKET_OPTIONS_H
 
-#include "zmuduo/base/types.h"
 #include <netinet/in.h>
 
 namespace zmuduo::net::sockets {
@@ -20,7 +19,7 @@ void setNonBlockAndCloseOnExec(int socketFD);
  */
 int createNonblockingOrDie(sa_family_t family);
 
-int getSocketError(int sockfd);
+int getSocketError(int sockFD);
 
 /**
  * @brief 将sockaddr_in类型的指针转换为sockaddr类型的指针

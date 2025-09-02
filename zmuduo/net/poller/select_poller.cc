@@ -4,7 +4,7 @@
 #include <cassert>
 
 namespace zmuduo::net {
-Timestamp SelectPoller::poll(int timeoutMs, ChannelList* activeChannels) {
+Timestamp SelectPoller::poll(const int timeoutMs, ChannelList* activeChannels) {
     fd_set readSet, writeSet, exceptSet;
     int    maxFD = -1;
     FD_ZERO(&readSet);
@@ -12,8 +12,8 @@ Timestamp SelectPoller::poll(int timeoutMs, ChannelList* activeChannels) {
     FD_ZERO(&exceptSet);
     // 初始化fd_set
     for (const auto& selectFD : m_selectFDs) {
-        int      fd     = std::get<0>(selectFD);
-        uint32_t events = std::get<1>(selectFD);
+        int            fd     = std::get<0>(selectFD);
+        const uint32_t events = std::get<1>(selectFD);
         if (fd >= 0 && (events & (EPOLLIN | EPOLLPRI))) {
             FD_SET(fd, &readSet);
         }
@@ -24,9 +24,9 @@ Timestamp SelectPoller::poll(int timeoutMs, ChannelList* activeChannels) {
         maxFD = std::max(maxFD, fd);
     }
     // 超时时间
-    timeval timeout   = {.tv_sec = timeoutMs / 1000, .tv_usec = timeoutMs % 1000 * 1000};
-    int     numEvents = ::select(maxFD + 1, &readSet, &writeSet, &exceptSet, &timeout);
-    auto    now       = Timestamp::Now();
+    timeval    timeout   = {.tv_sec = timeoutMs / 1000, .tv_usec = timeoutMs % 1000 * 1000};
+    const int  numEvents = ::select(maxFD + 1, &readSet, &writeSet, &exceptSet, &timeout);
+    const auto now       = Timestamp::Now();
     if (numEvents > 0) {
         // select监听到事件发生
         fillActiveChannels(numEvents, activeChannels, readSet, writeSet, exceptSet);
@@ -41,8 +41,8 @@ Timestamp SelectPoller::poll(int timeoutMs, ChannelList* activeChannels) {
 }
 
 void SelectPoller::updateChannel(Channel* channel) {
-    Poller::assertInLoopThread();
-    int index = channel->getIndex();
+    assertInLoopThread();
+    const int index = channel->getIndex();
     ZMUDUO_LOG_FMT_INFO("fd is %d,index is %d", channel->getFD(), index);
     if (index < 0) {
         // 当前channel不存在对应的selectFD,修改selectFD
@@ -58,7 +58,7 @@ void SelectPoller::updateChannel(Channel* channel) {
         // 更新selectFD的事件
         auto& selectFD = m_selectFDs[index];
         assert(std::get<0>(selectFD) == channel->getFD() ||
-               std::get<0>(selectFD) == -channel->getFD() - 1);
+            std::get<0>(selectFD) == -channel->getFD() - 1);
         std::get<1>(selectFD) = channel->getEvents();
         if (channel->isNoneEvent()) {
             // 如果当前fd不存在事件,则忽略fd
@@ -68,17 +68,17 @@ void SelectPoller::updateChannel(Channel* channel) {
 }
 
 void SelectPoller::removeChannel(Channel* channel) {
-    Poller::assertInLoopThread();
-    int fd = channel->getFD();
+    assertInLoopThread();
+    const int fd = channel->getFD();
     ZMUDUO_LOG_FMT_INFO("SelectPoller channel's fd is %d", fd);
     // channel必须存在且事件应该为空
     assert(hasChannel(channel));
     assert(channel->isNoneEvent());
     // 获取当前channel状态
-    int index = channel->getIndex();
+    const int index = channel->getIndex();
     assert(0 <= index && index < static_cast<int>(m_selectFDs.size()));
     // 从map将当前channel删除
-    size_t n = m_channels.erase(fd);
+    const size_t n = m_channels.erase(fd);
     assert(n == 1);
     // 删除selectFD
     if (index == m_selectFDs.size() - 1) {
@@ -91,16 +91,16 @@ void SelectPoller::removeChannel(Channel* channel) {
         if (fdAtEnd < 0) {
             fdAtEnd = -fdAtEnd - 1;
         }
-        m_channels[fdAtEnd]->setIndex(index);  // 更新末尾channel的index
+        m_channels[fdAtEnd]->setIndex(index); // 更新末尾channel的index
         m_selectFDs.pop_back();
     }
 }
 
-void SelectPoller::fillActiveChannels(int          numEvents,
-                                      ChannelList* activeChannels,
-                                      fd_set&      readSet,
-                                      fd_set&      writeSet,
-                                      fd_set&      exceptSet) const {
+void SelectPoller::fillActiveChannels(int           numEvents,
+                                      ChannelList*  activeChannels,
+                                      const fd_set& readSet,
+                                      const fd_set& writeSet,
+                                      const fd_set& exceptSet) const {
     for (const auto& selectFD : m_selectFDs) {
         int  fd = std::get<0>(selectFD);
         auto it = m_channels.find(fd);
@@ -131,4 +131,4 @@ void SelectPoller::fillActiveChannels(int          numEvents,
         }
     }
 }
-}  // namespace zmuduo::net
+} // namespace zmuduo::net

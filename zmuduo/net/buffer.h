@@ -36,20 +36,21 @@ namespace zmuduo::net {
  * @note 线程安全性：非线程安全，应在同一线程内使用
  */
 class Buffer : public Copyable {
-  public:
-    static constexpr size_t      S_CHEAP_PREPEND = 8;           ///< 默认预留前缀空间大小
-    static constexpr size_t      S_INITIAL_SIZE  = 1024;        ///< 初始缓冲区大小
-    static constexpr const char* S_CRLF          = "\r\n";      ///< CRLF行结束符
-    static constexpr const char* S_HEADER_FOOTER = "\r\n\r\n";  ///< HTTP头结束标记
+public:
+    static constexpr size_t S_CHEAP_PREPEND = 8;          ///< 默认预留前缀空间大小
+    static constexpr size_t S_INITIAL_SIZE  = 1024;       ///< 初始缓冲区大小
+    static constexpr auto   S_CRLF          = "\r\n";     ///< CRLF行结束符
+    static constexpr auto   S_HEADER_FOOTER = "\r\n\r\n"; ///< HTTP头结束标记
 
-  public:
+public:
     /**
      * @brief 构造函数
      * @param[in] prependSize 初始预留前缀空间大小，默认为S_CHEAP_PREPEND
      * @param[in] initialSize 初始缓冲区大小，默认为S_INITIAL_SIZE
      * @note 实际分配空间为initialSize + prependSize
      */
-    explicit Buffer(size_t prependSize = S_CHEAP_PREPEND, size_t initialSize = S_INITIAL_SIZE)
+    explicit Buffer(const size_t prependSize = S_CHEAP_PREPEND,
+                    const size_t initialSize = S_INITIAL_SIZE)
         : m_buffer(prependSize + initialSize),
           m_prependSize(prependSize),
           m_readerIndex(prependSize),
@@ -78,7 +79,7 @@ class Buffer : public Copyable {
      * @brief 交换两个缓冲区内容
      * @param[in,out] other 要交换的另一个缓冲区
      */
-    void swap(Buffer& other) {
+    void swap(Buffer& other) noexcept {
         m_buffer.swap(other.m_buffer);
         std::swap(m_readerIndex, other.m_readerIndex);
         std::swap(m_writerIndex, other.m_writerIndex);
@@ -233,7 +234,7 @@ class Buffer : public Copyable {
      * @param[in] length 需要的最小可写字节数
      * @note 空间不足时会自动扩容
      */
-    void ensureWritableBytes(size_t length) {
+    void ensureWritableBytes(const size_t length) {
         if (getWriteableBytes() < length) {
             makeSpace(length);
         }
@@ -252,7 +253,7 @@ class Buffer : public Copyable {
      * @brief 标记已写入数据
      * @param[in] length 已写入的字节数
      */
-    void hasWritten(size_t length) {
+    void hasWritten(const size_t length) {
         assert(length <= getWriteableBytes());
         m_writerIndex += length;
     }
@@ -335,7 +336,7 @@ class Buffer : public Copyable {
     int writeSSL(SSL* ssl, int* savedErrno) const;
 #endif
 
-  private:
+private:
     /**
      * @brief 获取内部缓冲区起始指针
      * @return const char* 缓冲区起始指针
@@ -359,12 +360,12 @@ class Buffer : public Copyable {
      */
     void makeSpace(size_t length);
 
-  private:
-    std::vector<char> m_buffer;       ///< 数据存储缓冲区
-    size_t            m_prependSize;  ///< 前面预留的大小
-    size_t            m_readerIndex;  ///< 读指针位置
-    size_t            m_writerIndex;  ///< 写指针位置
+private:
+    std::vector<char> m_buffer;      ///< 数据存储缓冲区
+    size_t            m_prependSize; ///< 前面预留的大小
+    size_t            m_readerIndex; ///< 读指针位置
+    size_t            m_writerIndex; ///< 写指针位置
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

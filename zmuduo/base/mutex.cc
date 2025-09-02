@@ -2,7 +2,8 @@
 #include <stdexcept>
 
 namespace zmuduo {
-Semaphore::Semaphore(unsigned int count) : m_semaphore() {
+Semaphore::Semaphore(const unsigned int count)
+    : m_semaphore() {
     if (sem_init(&m_semaphore, 0, count)) {
         throw std::logic_error("sem_init error");
     }
@@ -23,4 +24,4 @@ void Semaphore::notify() {
         throw std::logic_error("sem_post error");
     }
 }
-}  // namespace zmuduo
+} // namespace zmuduo

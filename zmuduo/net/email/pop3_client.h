@@ -42,7 +42,7 @@ namespace zmuduo::net::email {
  * @endcode
  */
 class Pop3Client : NoCopyable {
-  public:
+public:
     /**
      * @brief 认证完成回调
      * @typedef std::function&lt;void()&gt;
@@ -55,7 +55,7 @@ class Pop3Client : NoCopyable {
      */
     using CommandCallback = std::function<void(const Pop3Response::Ptr& response)>;
 
-  public:
+public:
     /**
      * @brief 构造函数，通过 URI 字符串创建客户端。
      * @param[in,out] loop 所属事件循环。
@@ -290,37 +290,37 @@ class Pop3Client : NoCopyable {
      */
     void quit(std::function<void(const Pop3QuitResponse::Ptr&)> callback);
 
-  private:
+private:
     /**
      * @brief 连接状态枚举。
      */
     enum class State {
-        DISCONNECT,     ///< 未连接
-        AUTHORIZATION,  ///< 认证中（USER, PASS）
-        TRANSACTION,    ///< 事务处理（STAT, UIDL, RETR 等）
-        UPDATE          ///< 更新状态（QUIT）
+        DISCONNECT,    ///< 未连接
+        AUTHORIZATION, ///< 认证中（USER, PASS）
+        TRANSACTION,   ///< 事务处理（STAT, UIDL, RETR 等）
+        UPDATE         ///< 更新状态（QUIT）
     };
 
     /**
      * @brief 命令类型枚举。
      */
     enum class Command {
-        NONE,    ///< 无命令（初始状态）
-        USER,    ///< USER 认证
-        PASS,    ///< PASS 认证
-        APOP,    ///< APOP 认证（未实现）
-        STAT,    ///< 查询邮箱状态
-        UIDL,    ///< 列出所有邮件 UID
-        UIDL_N,  ///< 获取指定邮件 UID
-        LIST,    ///< 列出所有邮件大小
-        LIST_N,  ///< 获取指定邮件大小
-        RETR,    ///< 检索邮件内容
-        DELE,    ///< 标记邮件删除
-        RSET,    ///< 重置会话
-        TOP,     ///< 检索邮件头部和部分正文
-        NOOP,    ///< 空操作
-        CAPA,    ///< 查询服务器功能
-        QUIT     ///< 结束会话
+        NONE,   ///< 无命令（初始状态）
+        USER,   ///< USER 认证
+        PASS,   ///< PASS 认证
+        APOP,   ///< APOP 认证（未实现）
+        STAT,   ///< 查询邮箱状态
+        UIDL,   ///< 列出所有邮件 UID
+        UIDL_N, ///< 获取指定邮件 UID
+        LIST,   ///< 列出所有邮件大小
+        LIST_N, ///< 获取指定邮件大小
+        RETR,   ///< 检索邮件内容
+        DELE,   ///< 标记邮件删除
+        RSET,   ///< 重置会话
+        TOP,    ///< 检索邮件头部和部分正文
+        NOOP,   ///< 空操作
+        CAPA,   ///< 查询服务器功能
+        QUIT    ///< 结束会话
     };
 
     /**
@@ -350,7 +350,6 @@ class Pop3Client : NoCopyable {
 
     /**
      * @brief 处理事务阶段的响应。
-     * @param[in] connection TCP 连接。
      * @param[in,out] buffer 接收缓冲区。
      * @note 解析 STAT, UIDL, RETR 等命令响应，触发对应回调。
      */
@@ -464,19 +463,19 @@ class Pop3Client : NoCopyable {
     template <typename T>
     static CommandCallback wrapCallback(std::function<void(std::shared_ptr<T>)> cb);
 
-  private:
-    TcpClient         m_client;    ///< 底层 TCP 客户端
-    State             m_state;     ///< 当前连接状态
-    const std::string m_username;  ///< 用户名
-    const std::string m_password;  ///< 原始密码
-    std::string m_finalPassword;  ///< 最终密码（用于APOP的MD5摘要或USER/PASS的明文密码）
-    const bool m_useApop;         ///< 是否使用apop方式进行认证
-    bool       m_maybeRetry;  ///< 是否需要继续解析消息(消息可能一次性来了很多)
-    std::string                 m_timestamp;             ///< 存储服务器返回的时间戳
-    std::queue<Command>         m_commands;              ///< 命令队列
-    std::queue<CommandCallback> m_callbacks;             ///< 回调队列
-    AuthenticateCallback        m_authenticateCallback;  ///< 认证完成回调
+private:
+    TcpClient                   m_client;                    ///< 底层 TCP 客户端
+    State                       m_state = State::DISCONNECT; ///< 当前连接状态
+    const std::string           m_username;                  ///< 用户名
+    const std::string           m_password;                  ///< 原始密码
+    std::string                 m_finalPassword;             ///< 最终密码（用于APOP的MD5摘要或USER/PASS的明文密码）
+    const bool                  m_useApop;                   ///< 是否使用apop方式进行认证
+    bool                        m_maybeRetry = false;        ///< 是否需要继续解析消息(消息可能一次性来了很多)
+    std::string                 m_timestamp;                 ///< 存储服务器返回的时间戳
+    std::queue<Command>         m_commands;                  ///< 命令队列
+    std::queue<CommandCallback> m_callbacks;                 ///< 回调队列
+    AuthenticateCallback        m_authenticateCallback;      ///< 认证完成回调
 };
-}  // namespace zmuduo::net::email
+} // namespace zmuduo::net::email
 
 #endif

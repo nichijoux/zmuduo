@@ -37,7 +37,7 @@ namespace zmuduo::net::http::ws {
  * @endcode
  */
 class WSServer : NoCopyable {
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] loop 事件循环。
@@ -62,7 +62,7 @@ class WSServer : NoCopyable {
      * @param[in] num 线程数。
      * @note 必须在 start 前调用，影响 TcpServer 的线程池。
      */
-    void setThreadNum(int num) {
+    void setThreadNum(const int num) const {
         m_server.setThreadNum(num);
     }
 
@@ -133,7 +133,7 @@ class WSServer : NoCopyable {
     }
 #endif
 
-  private:
+private:
     /**
      * @brief 选择支持的子协议。
      * @param[in] subProtocols 客户端请求的子协议列表。
@@ -174,21 +174,22 @@ class WSServer : NoCopyable {
      */
     void onWSCommunication(const TcpConnectionPtr& connection, Buffer& buffer);
 
-  private:
+private:
     /**
      * @brief 连接的状态标识枚举
      */
     enum class State {
-        TCP       = 1,  ///< 尚未完成 WebSocket 握手
-        WEBSOCKET = 2   ///< 已完成 WebSocket 协议升级
+        TCP = 1,      ///< 尚未完成 WebSocket 握手
+        WEBSOCKET = 2 ///< 已完成 WebSocket 协议升级
     };
-    TcpServer         m_server;      ///< 底层 TCP 服务器
-    ServletDispatcher m_dispatcher;  ///< Servlet 分发器
+
+    TcpServer         m_server;     ///< 底层 TCP 服务器
+    ServletDispatcher m_dispatcher; ///< Servlet 分发器
     std::unordered_map<TcpConnection*,
                        std::tuple<State, std::string, WSFrameParser::Ptr, WSSubProtocol::Ptr>>
-        m_connections;  ///< 连接状态表（状态、路径、解析器、使用的子协议）
-    std::set<WSSubProtocol::Ptr, WSSubProtocolCompare> m_subProtocols;  ///< 支持的子协议列表
+    m_connections;                                                     ///< 连接状态表（状态、路径、解析器、使用的子协议）
+    std::set<WSSubProtocol::Ptr, WSSubProtocolCompare> m_subProtocols; ///< 支持的子协议列表
 };
-}  // namespace zmuduo::net::http::ws
+} // namespace zmuduo::net::http::ws
 
 #endif

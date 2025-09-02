@@ -11,7 +11,6 @@
 #include <functional>
 
 namespace zmuduo::net {
-
 class EventLoop;
 
 /**
@@ -24,8 +23,8 @@ class EventLoop;
  *
  * @note 每当有新连接到达时，会触发 handleRead，从而调用上层注册的 NewConnectionCallback。
  */
-class Acceptor {
-  public:
+class Acceptor : NoCopyable {
+public:
     /**
      * @typedef std::function&lt;void(int sockFD, const Address::Ptr& address)&gt;
      * @brief 新连接建立时的回调函数类型
@@ -34,14 +33,14 @@ class Acceptor {
      */
     using NewConnectionCallback = std::function<void(int sockFD, const Address::Ptr& address)>;
 
-  public:
+public:
     /**
      * @brief 构造函数
      * @param[in] loop 所属的事件循环（通常为主 EventLoop）
-     * @param[in] listenAddr 监听的本地地址（IP + 端口）
+     * @param[in] listenAddress 监听的本地地址（IP + 端口）
      * @param[in] reuseport 是否开启端口复用（SO_REUSEPORT）
      */
-    Acceptor(EventLoop* loop, const Address::Ptr& listenAddr, bool reuseport);
+    Acceptor(EventLoop* loop, const Address::Ptr& listenAddress, bool reuseport);
 
     /**
      * @brief 析构函数
@@ -73,19 +72,19 @@ class Acceptor {
         return m_listening;
     }
 
-  private:
+private:
     /**
      * @brief 处理可读事件（即有新连接到来）
      * @note 此函数由 m_acceptChannel 可读事件触发，内部执行 accept()
      */
     void handleRead();
 
-  private:
-    EventLoop* m_eventLoop;      ///< 所属的事件循环（一般为 mainLoop）
-    TcpSocket  m_acceptSocket;   ///< 内部使用的监听 socket 封装对象
-    Channel    m_acceptChannel;  ///< 与监听 socket 绑定的 channel，监听可读事件
-    bool       m_listening;      ///< 是否处于监听状态
-    NewConnectionCallback m_connectCallback;  ///< 新连接建立时的回调函数
+private:
+    EventLoop*            m_eventLoop;                 ///< 所属的事件循环（一般为 mainLoop）
+    TcpSocket             m_acceptSocket;              ///< 内部使用的监听 socket 封装对象
+    Channel               m_acceptChannel;             ///< 与监听 socket 绑定的 channel，监听可读事件
+    bool                  m_listening       = false;   ///< 是否处于监听状态
+    NewConnectionCallback m_connectCallback = nullptr; ///< 新连接建立时的回调函数
     /**
      * @brief 备用空闲文件描述符，用于处理 FD 耗尽情况
      *
@@ -93,9 +92,8 @@ class Acceptor {
      * 释放出一个 fd 来完成 accept()，然后立即 close 该连接，最后重新打开 idleFD。
      * 此技巧可防止客户端因 FD 耗尽而收到连接重置。
      */
-    int m_idleFD;  ///< 备用空闲文件描述符，用于处理 FD 耗尽情况
+    int m_idleFD; ///< 备用空闲文件描述符，用于处理 FD 耗尽情况
 };
-
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif  // ZMUDUO_NET_ACCEPTOR_H

@@ -119,39 +119,38 @@
 #define ZMUDUO_LOG_FMT_FATAL(format, ...) ZMUDUO_LOG_FMT_BASE(FATAL, format, ##__VA_ARGS__)
 
 namespace zmuduo {
-
 /**
  * @namespace color
  * @brief ANSI 颜色代码，用于日志输出着色。
  */
 namespace color {
-    const std::string RESET   = "\033[0m";   ///< 重置颜色
-    const std::string BLACK   = "\033[30m";  ///< 黑色
-    const std::string RED     = "\033[31m";  ///< 红色
-    const std::string GREEN   = "\033[32m";  ///< 绿色
-    const std::string YELLOW  = "\033[33m";  ///< 黄色
-    const std::string BLUE    = "\033[34m";  ///< 蓝色
-    const std::string MAGENTA = "\033[35m";  ///< 品红色
-    const std::string CYAN    = "\033[36m";  ///< 青色
-    const std::string WHITE   = "\033[37m";  ///< 白色
+    const std::string RESET   = "\033[0m";  ///< 重置颜色
+    const std::string BLACK   = "\033[30m"; ///< 黑色
+    const std::string RED     = "\033[31m"; ///< 红色
+    const std::string GREEN   = "\033[32m"; ///< 绿色
+    const std::string YELLOW  = "\033[33m"; ///< 黄色
+    const std::string BLUE    = "\033[34m"; ///< 蓝色
+    const std::string MAGENTA = "\033[35m"; ///< 品红色
+    const std::string CYAN    = "\033[36m"; ///< 青色
+    const std::string WHITE   = "\033[37m"; ///< 白色
 
-    const std::string BRIGHT_BLACK   = "\033[90m";  ///< 亮黑色
-    const std::string BRIGHT_RED     = "\033[91m";  ///< 亮红色
-    const std::string BRIGHT_GREEN   = "\033[92m";  ///< 亮绿色
-    const std::string BRIGHT_YELLOW  = "\033[93m";  ///< 亮黄色
-    const std::string BRIGHT_BLUE    = "\033[94m";  ///< 亮蓝色
-    const std::string BRIGHT_MAGENTA = "\033[95m";  ///< 亮品红色
-    const std::string BRIGHT_CYAN    = "\033[96m";  ///< 亮青色
-    const std::string BRIGHT_WHITE   = "\033[97m";  ///< 亮白色
+    const std::string BRIGHT_BLACK   = "\033[90m"; ///< 亮黑色
+    const std::string BRIGHT_RED     = "\033[91m"; ///< 亮红色
+    const std::string BRIGHT_GREEN   = "\033[92m"; ///< 亮绿色
+    const std::string BRIGHT_YELLOW  = "\033[93m"; ///< 亮黄色
+    const std::string BRIGHT_BLUE    = "\033[94m"; ///< 亮蓝色
+    const std::string BRIGHT_MAGENTA = "\033[95m"; ///< 亮品红色
+    const std::string BRIGHT_CYAN    = "\033[96m"; ///< 亮青色
+    const std::string BRIGHT_WHITE   = "\033[97m"; ///< 亮白色
 
-    const std::string BOLD_RED     = "\033[1;31m";  ///< 加粗红色
-    const std::string BOLD_GREEN   = "\033[1;32m";  ///< 加粗绿色
-    const std::string BOLD_YELLOW  = "\033[1;33m";  ///< 加粗黄色
-    const std::string BOLD_BLUE    = "\033[1;34m";  ///< 加粗蓝色
-    const std::string BOLD_MAGENTA = "\033[1;35m";  ///< 加粗品红色
-    const std::string BOLD_CYAN    = "\033[1;36m";  ///< 加粗青色
-    const std::string BOLD_WHITE   = "\033[1;37m";  ///< 加粗白色
-}  // namespace color
+    const std::string BOLD_RED     = "\033[1;31m"; ///< 加粗红色
+    const std::string BOLD_GREEN   = "\033[1;32m"; ///< 加粗绿色
+    const std::string BOLD_YELLOW  = "\033[1;33m"; ///< 加粗黄色
+    const std::string BOLD_BLUE    = "\033[1;34m"; ///< 加粗蓝色
+    const std::string BOLD_MAGENTA = "\033[1;35m"; ///< 加粗品红色
+    const std::string BOLD_CYAN    = "\033[1;36m"; ///< 加粗青色
+    const std::string BOLD_WHITE   = "\033[1;37m"; ///< 加粗白色
+}                                                  // namespace color
 
 /**
  * @class LogLevel
@@ -160,18 +159,18 @@ namespace color {
  * 提供日志级别枚举（DEBUG, INFO, WARNING, IMPORTANT, ERROR, FATAL）及其与字符串的转换。
  */
 class LogLevel {
-  public:
+public:
     /**
      * @enum Level
      * @brief 日志级别枚举。
      */
     enum Level {
-        DEBUG,      ///< 调试信息
-        INFO,       ///< 一般信息
-        WARNING,    ///< 警告信息
-        IMPORTANT,  ///< 重要信息
-        ERROR,      ///< 错误信息
-        FATAL       ///< 致命错误，导致程序退出
+        DEBUG,     ///< 调试信息
+        INFO,      ///< 一般信息
+        WARNING,   ///< 警告信息
+        IMPORTANT, ///< 重要信息
+        ERROR,     ///< 错误信息
+        FATAL      ///< 致命错误，导致程序退出
     };
 
     /**
@@ -179,14 +178,14 @@ class LogLevel {
      * @param[in] level 日志级别。
      * @return std::string 级别对应的字符串（如 "DEBUG"）。
      */
-    static std::string ToString(LogLevel::Level level);
+    static std::string ToString(Level level);
 
     /**
      * @brief 从字符串解析日志级别。
-     * @param[in] str 级别字符串（如 "debug", "INFO"）。
+     * @param[in] s 级别字符串（如 "debug", "INFO"）。
      * @return LogLevel::Level 对应的日志级别，默认返回 DEBUG。
      */
-    static LogLevel::Level FromString(const std::string& str);
+    static Level FromString(const std::string& s);
 };
 
 /**
@@ -196,15 +195,15 @@ class LogLevel {
  * 提供日志输出模式枚举（STDOUT, FILE, BOTH）及其与字符串的转换。
  */
 class LogMode {
-  public:
+public:
     /**
      * @enum Mode
      * @brief 日志输出模式枚举。
      */
     enum Mode {
-        STDOUT,  ///< 输出到标准输出
-        FILE,    ///< 输出到文件
-        BOTH     ///< 同时输出到标准输出和文件
+        STDOUT, ///< 输出到标准输出
+        FILE,   ///< 输出到文件
+        BOTH    ///< 同时输出到标准输出和文件
     };
 
     /**
@@ -212,14 +211,14 @@ class LogMode {
      * @param[in] mode 输出模式。
      * @return std::string 模式对应的字符串（如 "STDOUT"）。
      */
-    static std::string ToString(LogMode::Mode mode);
+    static std::string ToString(Mode mode);
 
     /**
      * @brief 从字符串解析输出模式。
-     * @param[in] str 模式字符串（如 "stdout", "FILE"）。
+     * @param[in] s 模式字符串（如 "stdout", "FILE"）。
      * @return LogMode::Mode 对应的输出模式，默认返回 STDOUT。
      */
-    static LogMode::Mode FromString(const std::string& string);
+    static Mode FromString(const std::string& s);
 };
 
 /**
@@ -229,14 +228,14 @@ class LogMode {
  * 包含日志级别、内容、时间戳、进程/线程 ID、文件名、行号和函数名。
  */
 struct LogMessage {
-    LogLevel::Level m_level;      ///< 日志级别
-    std::string     m_content;    ///< 日志内容
-    Timestamp       m_timestamp;  ///< 日志时间戳
-    pid_t           m_pid;        ///< 进程 ID
-    pid_t           m_tid;        ///< 线程 ID
-    std::string     m_filename;   ///< 文件名
-    int             m_line;       ///< 行号
-    std::string     m_function;   ///< 函数名
+    LogLevel::Level m_level;     ///< 日志级别
+    std::string     m_content;   ///< 日志内容
+    Timestamp       m_timestamp; ///< 日志时间戳
+    pid_t           m_pid;       ///< 进程 ID
+    pid_t           m_tid;       ///< 线程 ID
+    std::string     m_filename;  ///< 文件名
+    int             m_line;      ///< 行号
+    std::string     m_function;  ///< 函数名
 
     /**
      * @brief 构造函数。
@@ -274,7 +273,7 @@ struct LogMessage {
  * @endcode
  */
 class AsyncLogger : NoCopyable, NoMoveable {
-  public:
+public:
     /**
      * @brief 析构函数。
      * @note 停止后台线程，关闭文件流，清理资源。
@@ -300,7 +299,7 @@ class AsyncLogger : NoCopyable, NoMoveable {
      * @param[in] level 最小日志级别。
      * @note 低于此级别的日志将被忽略。
      */
-    void setLogLevel(LogLevel::Level level) {
+    void setLogLevel(const LogLevel::Level level) {
         m_minLevel = level;
     }
 
@@ -316,7 +315,7 @@ class AsyncLogger : NoCopyable, NoMoveable {
      * @brief 设置日志输出模式。
      * @param[in] mode 日志输出模式（STDOUT, FILE, BOTH）。
      */
-    void setLogMode(LogMode::Mode mode) {
+    void setLogMode(const LogMode::Mode mode) {
         m_mode = mode;
     }
 
@@ -339,7 +338,7 @@ class AsyncLogger : NoCopyable, NoMoveable {
      * @param[in] size 最大文件大小（字节）。
      * @note 超过此大小将触发文件切片。
      */
-    void setMaxFileSize(size_t size) {
+    void setMaxFileSize(const size_t size) {
         m_maxFileSize = size;
     }
 
@@ -348,7 +347,7 @@ class AsyncLogger : NoCopyable, NoMoveable {
      * @param[in] enabled 是否启用颜色。
      * @note 仅对 STDOUT 有效，文件输出不含颜色。
      */
-    void setColorEnabled(bool enabled) {
+    void setColorEnabled(const bool enabled) {
         m_enableColor = enabled;
     }
 
@@ -413,11 +412,11 @@ class AsyncLogger : NoCopyable, NoMoveable {
      * @note 阻塞直到日志队列清空。
      */
     void flush() {
-        std::unique_lock<std::mutex> lock(m_queueMutex);
+        std::unique_lock lock(m_queueMutex);
         m_condition.wait(lock, [this] { return m_logQueue.empty(); });
     }
 
-  private:
+private:
     /**
      * @brief 构造函数，初始化单例。
      * @note 启动后台线程，默认配置为 DEBUG 级别、STDOUT 模式、100MB 文件大小。
@@ -457,20 +456,20 @@ class AsyncLogger : NoCopyable, NoMoveable {
      */
     void processLogs();
 
-  private:
-    std::queue<LogMessage>  m_logQueue;         ///< 日志消息队列
-    std::mutex              m_queueMutex;       ///< 队列互斥锁
-    std::condition_variable m_condition;        ///< 队列条件变量
-    thread::Thread          m_workerThread;     ///< 后台处理线程
-    std::atomic<bool>       m_stop;             ///< 停止标志
-    LogLevel::Level         m_minLevel;         ///< 最小日志级别
-    LogMode::Mode           m_mode;             ///< 日志输出模式
-    std::string             m_logFilePath;      ///< 日志文件路径
-    std::ofstream           m_fileStream;       ///< 日志文件流
-    size_t                  m_maxFileSize;      ///< 最大文件大小
-    size_t                  m_currentFileSize;  ///< 当前文件大小
-    int                     m_fileIndex;        ///< 文件索引
-    bool                    m_enableColor;      ///< 是否启用颜色输出
+private:
+    std::queue<LogMessage>  m_logQueue;                            ///< 日志消息队列
+    std::mutex              m_queueMutex;                          ///< 队列互斥锁
+    std::condition_variable m_condition;                           ///< 队列条件变量
+    thread::Thread          m_workerThread;                        ///< 后台处理线程
+    std::atomic<bool>       m_stop        = false;                 ///< 停止标志
+    LogLevel::Level         m_minLevel    = LogLevel::DEBUG;       ///< 最小日志级别
+    LogMode::Mode           m_mode        = LogMode::STDOUT;       ///< 日志输出模式
+    std::string             m_logFilePath = "./";                  ///< 日志文件路径
+    std::ofstream           m_fileStream;                          ///< 日志文件流
+    size_t                  m_maxFileSize     = 100 * 1024 * 1024; ///< 最大文件大小
+    size_t                  m_currentFileSize = 0;                 ///< 当前文件大小
+    int                     m_fileIndex       = 0;                 ///< 文件索引
+    bool                    m_enableColor     = true;              ///< 是否启用颜色输出
 };
 
 /**
@@ -482,7 +481,7 @@ class AsyncLogger : NoCopyable, NoMoveable {
  * @note 日志提交在析构时进行，需确保 LogStream 生命周期正确。
  */
 class LogStream {
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] level 日志级别。
@@ -509,13 +508,12 @@ class LogStream {
         return *this;
     }
 
-  private:
-    LogLevel::Level    m_level;     ///< 日志级别
-    std::string        m_filename;  ///< 文件名
-    int                m_line;      ///< 行号
-    std::string        m_function;  ///< 函数名
-    std::ostringstream m_oss;       ///< 流缓冲区
+private:
+    LogLevel::Level    m_level;    ///< 日志级别
+    std::string        m_filename; ///< 文件名
+    int                m_line;     ///< 行号
+    std::string        m_function; ///< 函数名
+    std::ostringstream m_oss;      ///< 流缓冲区
 };
-
-}  // namespace zmuduo
+} // namespace zmuduo
 #endif  // ZMUDUO_BASE_LOGGER_H

@@ -32,13 +32,14 @@ namespace zmuduo::net {
  * loop.loop();
  * @endcode
  */
-class PollPoller : public Poller {
-  public:
+class PollPoller final : public Poller {
+public:
     /**
      * @brief 构造函数，初始化 PollPoller。
      * @param[in] eventLoop 所属的事件循环。
      */
-    explicit PollPoller(EventLoop* eventLoop) : Poller(eventLoop) {}
+    explicit PollPoller(EventLoop* eventLoop)
+        : Poller(eventLoop) {}
 
     /**
      * @brief 析构函数，清理资源。
@@ -71,12 +72,12 @@ class PollPoller : public Poller {
      */
     void removeChannel(Channel* channel) override;
 
-  private:
+private:
     /**
      * @typedef std::vector&lt;struct pollfd&gt;
      * @brief pollfd 列表类型，存储文件描述符及其事件。
      */
-    using PollFDList = std::vector<struct pollfd>;
+    using PollFDList = std::vector<pollfd>;
 
     /**
      * @brief 填充活跃的 Channel 列表。
@@ -86,9 +87,9 @@ class PollPoller : public Poller {
      */
     void fillActiveChannels(int numEvents, ChannelList* activeChannels) const;
 
-  private:
-    PollFDList m_pollFDs;  ///< 存储 pollfd 的列表
+private:
+    PollFDList m_pollFDs; ///< 存储 pollfd 的列表
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

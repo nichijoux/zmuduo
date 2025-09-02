@@ -22,13 +22,7 @@ WSClient::WSClient(EventLoop* loop, const Uri& uri, std::string name)
 }
 
 WSClient::WSClient(EventLoop* loop, const Address::Ptr& serverAddress, std::string name)
-    : m_state(State::NONE),
-      m_client(loop, serverAddress, std::move(name)),
-      m_key(),
-      m_path("/"),
-      m_connectionCallback(),
-      m_messageCallback(),
-      m_parser() {
+    : m_client(loop, serverAddress, std::move(name)) {
     // 注册回调函数
     m_client.setConnectionCallback(
         [this](const TcpConnectionPtr& connection) { onConnection(connection); });
@@ -95,7 +89,7 @@ void WSClient::doWhenError() {
     // 发送close帧
     m_client.send(
         WSFrameMessage::MakeCloseFrame(WSCloseCode::NORMAL_CLOSURE, m_parser.getErrorMessage())
-            .serialize(true));
+        .serialize(true));
     // 重置数据
     m_state = State::NONE;
     m_parser.reset();
@@ -123,7 +117,7 @@ void WSClient::onMessage(const TcpConnectionPtr& connection,
     assert(m_state == State::HTTP || m_state == State::WEBSOCKET);
     if (m_state == State::WEBSOCKET) {
     needParse:
-        int code = m_parser.parse(buffer, false);
+        const int code = m_parser.parse(buffer, false);
         if (code == 1) {
             auto& wsFrame = m_parser.getWSFrameMessage();
             // 设置解析到的子协议
@@ -151,39 +145,39 @@ void WSClient::onMessage(const TcpConnectionPtr& connection,
     } else {
         // http,握手后半段,此时也获取了一个http响应
         HttpResponseParser parser;
-        int                code = parser.parse(buffer);
-        if (code == 1) {
+        if (const int code = parser.parse(buffer); code == 1) {
             auto& response = parser.getResponse();
             if (response.getStatus() != HttpStatus::SWITCHING_PROTOCOLS) {
                 ZMUDUO_LOG_ERROR << m_client.getName()
-                                 << " received error handshake http response\n"
-                                 << response;
+                    << " received error handshake http response\n"
+                    << response;
                 doWhenError();
                 return;
             }
             // 服务器使用了子协议，接下来看客户端是否支持
-            auto it = std::find_if(m_supportProtocols.begin(), m_supportProtocols.end(),
-                                   [protocol = response.getHeader("Sec-WebSocket-Protocol")](
-                                       const WSSubProtocol::Ptr& subProtocol) {
-                                       return subProtocol && protocol == subProtocol->getName();
-                                   });
+            const auto it = std::find_if(m_supportProtocols.begin(), m_supportProtocols.end(),
+                                         [protocol = response.getHeader("Sec-WebSocket-Protocol")](
+                                         const WSSubProtocol::Ptr& subProtocol) {
+                                             return subProtocol && protocol == subProtocol->
+                                                    getName();
+                                         });
             if (it != m_supportProtocols.end()) {
                 // 选中了子协议
                 m_useProtocol = *it;
             } else if (!response.getHeader("Sec-WebSocket-Protocol").empty()) {
                 // 没有对应的子协议
                 ZMUDUO_LOG_ERROR << m_client.getName() << " not support the sub protocol: "
-                                 << response.getHeader("Sec-WebSocket-Protocol");
+                    << response.getHeader("Sec-WebSocket-Protocol");
                 doWhenError();
                 return;
             }
             // 检验http中的accept是否合法
-            auto acceptKey = response.getHeader("Sec-WebSocket-Accept");
-            auto validKey =
+            const auto acceptKey = response.getHeader("Sec-WebSocket-Accept");
+            const auto validKey  =
                 Base64encode(HexToBinary(SHA1sum(m_key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
             if (validKey != acceptKey) {
                 ZMUDUO_LOG_ERROR << m_client.getName()
-                                 << "received invalid Sec-WebSocket-Accept: " << acceptKey;
+                    << "received invalid Sec-WebSocket-Accept: " << acceptKey;
                 doWhenError();
                 return;
             }
@@ -199,4 +193,4 @@ void WSClient::onMessage(const TcpConnectionPtr& connection,
         }
     }
 }
-}  // namespace zmuduo::net::http::ws
+} // namespace zmuduo::net::http::ws

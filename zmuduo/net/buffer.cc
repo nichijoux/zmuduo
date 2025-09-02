@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 namespace zmuduo::net {
-void Buffer::retrieve(size_t length) {
+void Buffer::retrieve(const size_t length) {
     assert(length <= getReadableBytes());
     if (length < getReadableBytes()) {
         // 读取length长度的内容
@@ -17,7 +17,7 @@ void Buffer::retrieve(size_t length) {
     }
 }
 
-std::string Buffer::retrieveAsString(size_t length) {
+std::string Buffer::retrieveAsString(const size_t length) {
     assert(length <= getReadableBytes());
     std::string result(peek(), length);
     retrieve(length);
@@ -50,11 +50,11 @@ int8_t Buffer::peekInt8() const {
 
 #undef PEEK_DATA
 
-void Buffer::prepend(const void* data, size_t length) {
+void Buffer::prepend(const void* data, const size_t length) {
     assert(length <= getPrependableBytes());
     m_readerIndex -= length;
-    const char* ptr = static_cast<const char*>(data);
-    std::copy(ptr, ptr + length, const_cast<char*>(begin()) + m_readerIndex);
+    const auto ptr = static_cast<const char*>(data);
+    std::copy_n(ptr, length, const_cast<char*>(begin()) + m_readerIndex);
 }
 
 #define PREPEND_DATA(x)                                                                            \
@@ -63,19 +63,19 @@ void Buffer::prepend(const void* data, size_t length) {
         prepend(&data, sizeof(data));                                                              \
     } while (false)
 
-void Buffer::prependInt64(int64_t x) {
+void Buffer::prependInt64(const int64_t x) {
     PREPEND_DATA(x);
 }
 
-void Buffer::prependInt32(int32_t x) {
+void Buffer::prependInt32(const int32_t x) {
     PREPEND_DATA(x);
 }
 
-void Buffer::prependInt16(int16_t x) {
+void Buffer::prependInt16(const int16_t x) {
     PREPEND_DATA(x);
 }
 
-void Buffer::prependInt8(int8_t x) {
+void Buffer::prependInt8(const int8_t x) {
     PREPEND_DATA(x);
 }
 
@@ -97,9 +97,9 @@ void Buffer::retrieveInt8() {
     retrieve(sizeof(int8_t));
 }
 
-void Buffer::write(const void* data, size_t length) {
+void Buffer::write(const void* data, const size_t length) {
     ensureWritableBytes(length);
-    memcpy((void*)(getBeginWrite()), data, length);
+    memcpy(const_cast<char*>(getBeginWrite()), data, length);
     hasWritten(length);
 }
 
@@ -127,7 +127,7 @@ void Buffer::writeInt8(int8_t x) {
 
 #undef WRITE_DATA
 
-void Buffer::read(void* dist, size_t length) {
+void Buffer::read(void* dist, const size_t length) {
     assert(getReadableBytes() >= length);
     memcpy(dist, peek(), length);
     retrieve(length);
@@ -160,13 +160,13 @@ int8_t Buffer::readInt8() {
 }
 #undef READ_DATA
 
-void Buffer::unwrite(size_t length) {
+void Buffer::unwrite(const size_t length) {
     assert(length <= getReadableBytes());
     m_readerIndex -= length;
 }
 
-ssize_t Buffer::readFD(int fd, int* savedErrno) {
-    char extraBuffer[65536] = {0};
+ssize_t Buffer::readFD(const int fd, int* savedErrno) {
+    char extraBuffer[65536] = {};
     // readv,writev
     iovec vec[2];
     // buffer缓冲区中剩余的可写空间大小
@@ -195,7 +195,7 @@ ssize_t Buffer::readFD(int fd, int* savedErrno) {
     return n;
 }
 
-ssize_t Buffer::writeFD(int fd, int* savedErrno) const {
+ssize_t Buffer::writeFD(const int fd, int* savedErrno) const {
     const ssize_t n = ::write(fd, peek(), getReadableBytes());
     if (n < 0 && savedErrno != nullptr) {
         *savedErrno = errno;
@@ -206,8 +206,8 @@ ssize_t Buffer::writeFD(int fd, int* savedErrno) const {
 #ifdef ZMUDUO_ENABLE_OPENSSL
 int Buffer::readSSL(SSL* ssl, int* savedErrno) {
     ensureWritableBytes(1024);
-    int n = ::SSL_read(ssl, reinterpret_cast<void*>(const_cast<char*>(begin()) + m_writerIndex),
-                       static_cast<int>(getWriteableBytes()));
+    const int n = ::SSL_read(ssl, const_cast<char*>(begin()) + m_writerIndex,
+                             static_cast<int>(getWriteableBytes()));
     if (n > 0) {
         m_writerIndex += n;
     } else if (savedErrno != nullptr) {
@@ -217,7 +217,7 @@ int Buffer::readSSL(SSL* ssl, int* savedErrno) {
 }
 
 int Buffer::writeSSL(SSL* ssl, int* savedErrno) const {
-    int n = ::SSL_write(ssl, peek(), static_cast<int>(getReadableBytes()));
+    const int n = ::SSL_write(ssl, peek(), static_cast<int>(getReadableBytes()));
     if (n < 0 && savedErrno) {
         *savedErrno = errno;
     }
@@ -225,7 +225,7 @@ int Buffer::writeSSL(SSL* ssl, int* savedErrno) const {
 }
 #endif
 
-void Buffer::makeSpace(size_t length) {
+void Buffer::makeSpace(const size_t length) {
     // 检查当前可写字节和可前置字节是否足够容纳新数据加上偏移量
     if (getWriteableBytes() + getPrependableBytes() < length + m_prependSize) {
         // 如果空间不足，直接调整缓冲区大小
@@ -234,9 +234,9 @@ void Buffer::makeSpace(size_t length) {
         // 确保偏移量小于读索引，以避免覆盖有效数据
         assert(m_prependSize < m_readerIndex);
         // 获取当前可读字节数
-        size_t readableBytes = getReadableBytes();
+        const size_t readableBytes = getReadableBytes();
         // 将未读取区域的字节移动到缓冲区的前置区域
-        char* beginPtr = const_cast<char*>(begin());
+        const auto beginPtr = const_cast<char*>(begin());
         std::copy(beginPtr + m_readerIndex, beginPtr + m_writerIndex, beginPtr + m_prependSize);
         // 更新读索引和写索引
         m_readerIndex = m_prependSize;
@@ -245,5 +245,4 @@ void Buffer::makeSpace(size_t length) {
         assert(readableBytes == getReadableBytes());
     }
 }
-
-}  // namespace zmuduo::net
+} // namespace zmuduo::net

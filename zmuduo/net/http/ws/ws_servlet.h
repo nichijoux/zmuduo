@@ -35,19 +35,25 @@ namespace zmuduo::net::http::ws {
  * @endcode
  */
 class Servlet : public Copyable {
-  public:
+public:
     /**
      * @typedef std::shared_ptr&lt;Servlet&gt;
      * @brief Servlet的智能指针
      */
     using Ptr = std::shared_ptr<Servlet>;
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] name Servlet 名称，用于标识和日志记录。
      */
-    explicit Servlet(std::string name) : m_name(std::move(name)) {}
+    explicit Servlet(std::string name)
+        : m_name(std::move(name)) {}
+
+    /**
+     * @brief 析构函数
+     */
+    virtual ~Servlet() = default;
 
     /**
      * @brief 处理 WebSocket 消息。
@@ -57,8 +63,8 @@ class Servlet : public Copyable {
      */
     virtual void handle(const WSFrameMessage& message, TcpConnectionPtr connection) = 0;
 
-  protected:
-    std::string m_name;  ///< Servlet 名称
+protected:
+    std::string m_name; ///< Servlet 名称
 };
 
 /**
@@ -78,8 +84,8 @@ class Servlet : public Copyable {
  * FunctionServlet servlet(cb);
  * @endcode
  */
-class FunctionServlet : public Servlet {
-  public:
+class FunctionServlet final : public Servlet {
+public:
     /**
      * @typedef std::function&lt;void(const WSFrameMessage& message, TcpConnectionPtr
      * connection)&gt;
@@ -88,7 +94,7 @@ class FunctionServlet : public Servlet {
      * @param[in,out] connection TCP 连接，表示 WebSocket 会话。
      */
     using ServletCallback =
-        std::function<void(const WSFrameMessage& message, TcpConnectionPtr connection)>;
+    std::function<void(const WSFrameMessage& message, TcpConnectionPtr connection)>;
 
     /**
      * @brief 构造函数。
@@ -96,7 +102,8 @@ class FunctionServlet : public Servlet {
      * @note Servlet 名称固定为 "FunctionServlet"。
      */
     explicit FunctionServlet(ServletCallback callback)
-        : Servlet("FunctionServlet"), m_callback(std::move(callback)) {}
+        : Servlet("FunctionServlet"),
+          m_callback(std::move(callback)) {}
 
     /**
      * @brief 处理 WebSocket 消息。
@@ -104,12 +111,12 @@ class FunctionServlet : public Servlet {
      * @param[in,out] connection TCP 连接，表示 WebSocket 会话。
      * @note 调用用户提供的回调函数处理消息。
      */
-    void handle(const WSFrameMessage& message, TcpConnectionPtr connection) override {
+    void handle(const WSFrameMessage& message, const TcpConnectionPtr connection) override {
         m_callback(message, connection);
     }
 
-  private:
-    ServletCallback m_callback;  ///< 用户回调函数
+private:
+    ServletCallback m_callback; ///< 用户回调函数
 };
 
 /**
@@ -126,8 +133,8 @@ class FunctionServlet : public Servlet {
  * servlet.handle(msg, connection); // 发送 CLOSE 帧并关闭连接
  * @endcode
  */
-class NotFoundServlet : public Servlet {
-  public:
+class NotFoundServlet final : public Servlet {
+public:
     /**
      * @brief 构造函数。
      * @note Servlet 名称固定为 "NotFound"。
@@ -142,7 +149,6 @@ class NotFoundServlet : public Servlet {
      */
     void handle(const WSFrameMessage& message, TcpConnectionPtr connection) override;
 };
-
-}  // namespace zmuduo::net::http::ws
+} // namespace zmuduo::net::http::ws
 
 #endif

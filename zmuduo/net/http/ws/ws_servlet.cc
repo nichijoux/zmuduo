@@ -3,8 +3,8 @@
 #include "zmuduo/net/tcp_connection.h"
 
 namespace zmuduo::net::http::ws {
-
-NotFoundServlet::NotFoundServlet() : Servlet("NotFound") {}
+NotFoundServlet::NotFoundServlet()
+    : Servlet("NotFound") {}
 
 void NotFoundServlet::handle(const WSFrameMessage& message, TcpConnectionPtr connection) {
     // x03xE8是状态码->对应状态码1000
@@ -13,5 +13,4 @@ void NotFoundServlet::handle(const WSFrameMessage& message, TcpConnectionPtr con
     // 发送数据
     connection->send(data);
 }
-
-}  // namespace zmuduo::net::http::ws
+} // namespace zmuduo::net::http::ws

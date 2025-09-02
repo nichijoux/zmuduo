@@ -41,15 +41,15 @@ const char* HttpStatusToString(const HttpStatus& s) {
     }
 }
 
-HttpRequest::HttpRequest(uint8_t version, bool close)
+HttpRequest::HttpRequest(const uint8_t version, const bool close)
     : m_method(HttpMethod::GET),
       m_version(version),
       m_close(close),
-      m_path("/"),
-      m_websocket(false) {}
+      m_websocket(false),
+      m_path("/") {}
 
 std::string HttpRequest::getHeader(const std::string& key, const std::string& def) const {
-    auto it = m_headers.find(key);
+    const auto it = m_headers.find(key);
     return it != m_headers.end() ? it->second : def;
 }
 
@@ -64,20 +64,21 @@ void HttpRequest::setHeader(const std::string& key, const std::string& value) {
 }
 
 std::string HttpRequest::getParam(const std::string& key, const std::string& def) const {
-    auto it = m_params.find(key);
+    const auto it = m_params.find(key);
     return it != m_params.end() ? it->second : def;
 }
 
 std::string HttpRequest::getCookie(const std::string& key, const std::string& def) const {
-    auto it = m_cookies.find(key);
+    const auto it = m_cookies.find(key);
     return it != m_cookies.end() ? it->second : def;
 }
 
 std::string HttpRequest::toString() const {
     std::stringstream ss;
     ss << HttpMethodToString(m_method) << " " << m_path << (m_query.empty() ? "" : "?") << m_query
-       << (m_fragment.empty() ? "" : "#") << m_fragment << " HTTP/" << ((uint32_t)(m_version >> 4))
-       << "." << ((uint32_t)(m_version & 0x0F)) << "\r\n";
+        << (m_fragment.empty() ? "" : "#") << m_fragment << " HTTP/" << static_cast<uint32_t>(
+            m_version >> 4)
+        << "." << static_cast<uint32_t>(m_version & 0x0F) << "\r\n";
     // websocket
     if (!m_websocket) {
         ss << "Connection: " << (m_close ? "close" : "keep-alive") << "\r\n";
@@ -106,11 +107,14 @@ std::string HttpRequest::toString() const {
     return ss.str();
 }
 
-HttpResponse::HttpResponse(uint8_t version, bool close)
-    : m_status(HttpStatus::OK), m_version(version), m_close(close), m_websocket(false) {}
+HttpResponse::HttpResponse(const uint8_t version, const bool close)
+    : m_status(HttpStatus::OK),
+      m_version(version),
+      m_close(close),
+      m_websocket(false) {}
 
 std::string HttpResponse::getHeader(const std::string& key, const std::string& def) const {
-    auto it = m_headers.find(key);
+    const auto it = m_headers.find(key);
     return it != m_headers.end() ? it->second : def;
 }
 
@@ -125,9 +129,12 @@ void HttpResponse::setHeader(const std::string& key, const std::string& value) {
 
 std::string HttpResponse::toString() const {
     std::stringstream ss;
-    ss << "HTTP/" << ((uint32_t)(m_version >> 4)) << "." << ((uint32_t)(m_version & 0x0F)) << " "
-       << (uint32_t)m_status << " " << (m_reason.empty() ? HttpStatusToString(m_status) : m_reason)
-       << "\r\n";
+    ss << "HTTP/" << static_cast<uint32_t>(m_version >> 4) << '.' << static_cast<uint32_t>(
+            m_version & 0x0F) << ' '
+        << static_cast<uint32_t>(m_status) << ' ' << (m_reason.empty() ?
+                                                          HttpStatusToString(m_status) :
+                                                          m_reason)
+        << "\r\n";
 
     if (!m_websocket) {
         ss << "Connection: " << (m_close ? "close" : "keep-alive") << "\r\n";
@@ -151,5 +158,4 @@ std::string HttpResponse::toString() const {
     }
     return ss.str();
 }
-
-}  // namespace zmuduo::net::http
+} // namespace zmuduo::net::http

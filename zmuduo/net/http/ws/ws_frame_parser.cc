@@ -11,29 +11,33 @@ void WSFrameParser::reset() {
     m_message.m_payload.clear();
 }
 
-int WSFrameParser::parse(Buffer& buffer, bool isClient) {
+int WSFrameParser::parse(Buffer& buffer, const bool isClient) {
     State beforeState;
     do {
         beforeState = m_state;
         switch (m_state) {
-            case State::NOT_START: parseHead(buffer, isClient); break;
-            case State::HEAD_PARSED: parseLength(buffer); break;
-            case State::LENGTH_PARSED: parseMaskKey(buffer); break;
-            case State::MASK_KEY_PARSED: parsePayload(buffer); break;
+            case State::NOT_START: parseHead(buffer, isClient);
+                break;
+            case State::HEAD_PARSED: parseLength(buffer);
+                break;
+            case State::LENGTH_PARSED: parseMaskKey(buffer);
+                break;
+            case State::MASK_KEY_PARSED: parsePayload(buffer);
+                break;
             case State::WAIT_OTHER:
                 // 重置部分数据,重置为not_start会再次解析数据
-                m_state         = State::NOT_START;
+                m_state = State::NOT_START;
                 m_payloadLength = 0;
                 break;
             case State::FINISH:
             case State::ERROR: break;
         }
     } while (beforeState != m_state);
-    int code = m_state == State::FINISH ? 1 : m_error.empty() ? 0 : -1;
+    const int code = m_state == State::FINISH ? 1 : m_error.empty() ? 0 : -1;
     return code;
 }
 
-void WSFrameParser::parseHead(Buffer& buffer, bool isClient) {
+void WSFrameParser::parseHead(Buffer& buffer, const bool isClient) {
     if (buffer.getReadableBytes() >= sizeof(m_head)) {
         // 第一个字节：FIN, RSV1-3, Opcode
         m_head.fin    = (*buffer.peek() & 0x80) != 0;
@@ -112,7 +116,7 @@ void WSFrameParser::parsePayload(Buffer& buffer) {
     // 不断读取buffer中的数据
     while (buffer.getReadableBytes() >= m_payloadLength && m_payloadLength != 0) {
         // 读取长度不能超过m_payloadLength
-        auto length = std::min(static_cast<int64_t>(buffer.getReadableBytes()), m_payloadLength);
+        const auto length = std::min(static_cast<int64_t>(buffer.getReadableBytes()), m_payloadLength);
         // 先将buffer的数据读取到data中
         m_message.m_payload.append(buffer.peek(), length);
         buffer.retrieve(length);
@@ -130,4 +134,4 @@ void WSFrameParser::parsePayload(Buffer& buffer) {
         m_state = m_head.fin ? State::FINISH : State::WAIT_OTHER;
     }
 }
-}  // namespace zmuduo::net::http::ws
+} // namespace zmuduo::net::http::ws

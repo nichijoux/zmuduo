@@ -4,13 +4,13 @@
 #include <cassert>
 
 namespace zmuduo::net {
-Timestamp PollPoller::poll(int timeoutMs, ChannelList* activeChannels) {
-    Poller::assertInLoopThread();
+Timestamp PollPoller::poll(const int timeoutMs, ChannelList* activeChannels) {
+    assertInLoopThread();
     ZMUDUO_LOG_FMT_INFO("total fd count is %ld", m_channels.size());
     // 使用 poll 系统调用等待文件描述符上的事件发生,numEvents不会超过m_pollFDs.size()
-    int numEvents = ::poll(m_pollFDs.data(), m_pollFDs.size(), timeoutMs);
+    const int numEvents = ::poll(m_pollFDs.data(), m_pollFDs.size(), timeoutMs);
     // 获取当前时间戳
-    auto now = Timestamp::Now();
+    const auto now = Timestamp::Now();
     // 如果监听到的事件数量大于 0，表示有事件发生
     if (numEvents > 0) {
         // 监听到事件发生
@@ -26,14 +26,14 @@ Timestamp PollPoller::poll(int timeoutMs, ChannelList* activeChannels) {
 }
 
 void PollPoller::updateChannel(Channel* channel) {
-    Poller::assertInLoopThread();
-    int index = channel->getIndex();
+    assertInLoopThread();
+    const int index = channel->getIndex();
     ZMUDUO_LOG_FMT_INFO("fd is %d,index is %d", channel->getFD(), index);
     if (index < 0) {
         // 当前channel不存在对应的pollfd,创建新的pollfd
         assert(m_channels.find(channel->getFD()) == m_channels.end());
-        pollfd pollFD = {.fd      = channel->getFD(),
-                         .events  = static_cast<short>(channel->getEvents()),
+        pollfd pollFD = {.fd = channel->getFD(),
+                         .events = static_cast<short>(channel->getEvents()),
                          .revents = 0};
         m_pollFDs.emplace_back(pollFD);
         channel->setIndex(static_cast<int>(m_pollFDs.size() - 1));
@@ -54,18 +54,18 @@ void PollPoller::updateChannel(Channel* channel) {
 }
 
 void PollPoller::removeChannel(Channel* channel) {
-    Poller::assertInLoopThread();
+    assertInLoopThread();
     // channel必须存在且事件应该为空
     assert(hasChannel(channel));
     assert(channel->isNoneEvent());
     // 获取对应的pollFD
-    int index = channel->getIndex();
+    const int index = channel->getIndex();
     ZMUDUO_LOG_FMT_INFO("channel's fd is %d,index is %d", channel->getFD(), index);
     assert(0 <= index && index < static_cast<int>(m_pollFDs.size()));
     const auto& pollFD = m_pollFDs[index];
     assert(pollFD.fd == channel->getFD() || pollFD.fd == -channel->getFD() - 1);
     // 移除当前pollfd
-    size_t n = m_channels.erase(channel->getFD());
+    const size_t n = m_channels.erase(channel->getFD());
     assert(n == 1);
     if (static_cast<size_t>(index) == m_pollFDs.size() - 1) {
         m_pollFDs.pop_back();
@@ -85,8 +85,8 @@ void PollPoller::fillActiveChannels(int numEvents, ChannelList* activeChannels) 
     for (const auto& pollFD : m_pollFDs) {
         if (pollFD.revents > 0 && numEvents > 0) {
             // 更新activeChannels
-            auto it      = m_channels.find(pollFD.fd);
-            auto channel = it->second;
+            const auto it      = m_channels.find(pollFD.fd);
+            auto       channel = it->second;
             assert(hasChannel(channel));
             // 通知channel发生了事件
             channel->setHappenedEvents(pollFD.revents);
@@ -98,4 +98,4 @@ void PollPoller::fillActiveChannels(int numEvents, ChannelList* activeChannels) 
         }
     }
 }
-}  // namespace zmuduo::net
+} // namespace zmuduo::net

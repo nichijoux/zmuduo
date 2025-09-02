@@ -33,24 +33,25 @@ namespace zmuduo::net::http {
  * @endcode
  */
 class Servlet : public Copyable {
-  public:
+public:
     /**
      * @typedef std::shared_ptr&lt;Servlet&gt;
      * @brief Servlet 智能指针类型。
      */
     using Ptr = std::shared_ptr<Servlet>;
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] name Servlet 名称，用于标识或日志记录。
      */
-    explicit Servlet(std::string name) : m_name(std::move(name)) {}
+    explicit Servlet(std::string name)
+        : m_name(std::move(name)) {}
 
     /**
      * @brief 虚析构函数，确保派生类正确析构。
      */
-    ~Servlet() = default;
+    virtual ~Servlet() = default;
 
     /**
      * @brief 处理 HTTP 请求。
@@ -68,8 +69,8 @@ class Servlet : public Copyable {
         return m_name;
     }
 
-  protected:
-    std::string m_name;  ///< Servlet 名称
+protected:
+    std::string m_name; ///< Servlet 名称
 };
 
 /**
@@ -94,8 +95,8 @@ class Servlet : public Copyable {
  * servlet.handle(request, response);
  * @endcode
  */
-class FunctionServlet : public Servlet {
-  public:
+class FunctionServlet final : public Servlet {
+public:
     /**
      * @typedef std::function&lt;void(const HttpRequest& request, HttpResponse& response)&gt;
      * @brief 回调函数类型，定义请求处理逻辑。
@@ -104,13 +105,14 @@ class FunctionServlet : public Servlet {
      */
     using ServletCallback = std::function<void(const HttpRequest& request, HttpResponse& response)>;
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] callback 处理请求的回调函数。
      */
     explicit FunctionServlet(ServletCallback callback)
-        : Servlet("FunctionServlet"), m_callback(std::move(callback)) {}
+        : Servlet("FunctionServlet"),
+          m_callback(std::move(callback)) {}
 
     /**
      * @brief 处理 HTTP 请求。
@@ -122,8 +124,8 @@ class FunctionServlet : public Servlet {
         m_callback(request, response);
     }
 
-  private:
-    ServletCallback m_callback;  ///< 请求处理回调函数
+private:
+    ServletCallback m_callback; ///< 请求处理回调函数
 };
 
 /**
@@ -145,8 +147,8 @@ class FunctionServlet : public Servlet {
  * std::cout &lt;&lt; response.toString() &gt;&gt; std::endl; // 输出 404 响应
  * @endcode
  */
-class NotFoundServlet : public Servlet {
-  public:
+class NotFoundServlet final : public Servlet {
+public:
     /**
      * @brief 构造函数。
      * @param[in] name Servlet 名称，通常为服务器标识（如 "zmuduo/1.0.0"）。
@@ -161,9 +163,9 @@ class NotFoundServlet : public Servlet {
      */
     void handle(const HttpRequest& request, HttpResponse& response) override;
 
-  private:
-    std::string m_content;  ///< 404 响应的 HTML 内容
+private:
+    std::string m_content; ///< 404 响应的 HTML 内容
 };
-}  // namespace zmuduo::net::http
+} // namespace zmuduo::net::http
 
 #endif

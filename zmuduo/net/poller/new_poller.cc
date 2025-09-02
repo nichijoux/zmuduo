@@ -11,10 +11,10 @@ namespace zmuduo::net {
 Poller* Poller::newPoller(EventLoop* loop) {
     if (::getenv("ZMUDUO_USE_POLL")) {
         return new PollPoller(loop);
-    } else if (::getenv("ZMUDUO_USE_SELECT")) {
-        return new SelectPoller(loop);
-    } else {
-        return new EpollPoller(loop);
     }
+    if (::getenv("ZMUDUO_USE_SELECT")) {
+        return new SelectPoller(loop);
+    }
+    return new EpollPoller(loop);
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net

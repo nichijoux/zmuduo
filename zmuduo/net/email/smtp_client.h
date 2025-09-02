@@ -36,7 +36,7 @@ namespace zmuduo::net::email {
  * @endcode
  */
 class SmtpClient : NoCopyable {
-  public:
+public:
     /**
      * @typedef std::function&lt;void()&gt;
      * @brief 成功发送邮件的回调函数类型。
@@ -50,7 +50,7 @@ class SmtpClient : NoCopyable {
      */
     using FailureCallback = std::function<void(const std::string& message)>;
 
-  public:
+public:
     /**
      * @brief 构造函数，使用 URI 字符串创建 SMTP 客户端。
      * @param[in] loop 事件循环。
@@ -176,23 +176,23 @@ class SmtpClient : NoCopyable {
         m_failureCallback = std::move(callback);
     }
 
-  private:
+private:
     /**
      * @enum State
      * @brief SMTP 协议状态机状态。
      */
     enum class State {
-        DISCONNECT,      ///< 未连接
-        CONNECTED,       ///< 已连接，待发送 HELO
-        HELO_SENT,       ///< 已发送 HELO
-        AUTH_SENT,       ///< 已发送 AUTH LOGIN
-        USERNAME_SENT,   ///< 已发送用户名
-        PASSWORD_SENT,   ///< 已发送密码
-        MAIL_FROM_SENT,  ///< 已发送 MAIL FROM
-        RCPT_TO_SENT,    ///< 已发送 RCPT TO
-        DATA_SENT,       ///< 已发送 DATA
-        QUIT_SENT,       ///< 已发送 QUIT
-        FINISHED         ///< 邮件发送完成
+        DISCONNECT,     ///< 未连接
+        CONNECTED,      ///< 已连接，待发送 HELO
+        HELO_SENT,      ///< 已发送 HELO
+        AUTH_SENT,      ///< 已发送 AUTH LOGIN
+        USERNAME_SENT,  ///< 已发送用户名
+        PASSWORD_SENT,  ///< 已发送密码
+        MAIL_FROM_SENT, ///< 已发送 MAIL FROM
+        RCPT_TO_SENT,   ///< 已发送 RCPT TO
+        DATA_SENT,      ///< 已发送 DATA
+        QUIT_SENT,      ///< 已发送 QUIT
+        FINISHED        ///< 邮件发送完成
     };
 
     /**
@@ -237,7 +237,7 @@ class SmtpClient : NoCopyable {
      * @param[in] cmd 命令字符串。
      * @note 通过 TCP 连接发送命令并记录日志。
      */
-    void sendCommand(const std::string& cmd);
+    void sendCommand(const std::string& cmd) const;
 
     /**
      * @brief 处理错误。
@@ -246,13 +246,13 @@ class SmtpClient : NoCopyable {
      */
     void handleError(const std::string& error);
 
-  private:
-    TcpClient               m_client;           ///< TCP 客户端连接
-    State                   m_state;            ///< 当前 SMTP 状态
-    std::deque<std::string> m_commands;         ///< 待发送的 SMTP 命令队列
-    SuccessCallback         m_successCallback;  ///< 成功回调函数
-    FailureCallback         m_failureCallback;  ///< 失败回调函数
+private:
+    TcpClient               m_client;          ///< TCP 客户端连接
+    State                   m_state;           ///< 当前 SMTP 状态
+    std::deque<std::string> m_commands;        ///< 待发送的 SMTP 命令队列
+    SuccessCallback         m_successCallback; ///< 成功回调函数
+    FailureCallback         m_failureCallback; ///< 失败回调函数
 };
-}  // namespace zmuduo::net::email
+} // namespace zmuduo::net::email
 
 #endif

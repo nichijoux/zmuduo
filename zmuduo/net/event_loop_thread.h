@@ -34,14 +34,14 @@ class EventLoop;
  * @endcode
  */
 class EventLoopThread : NoCopyable {
-  public:
+public:
     /**
      * @typedef std::function&lt;void(EventLoop*)&gt;
      * @brief 定义线程初始化回调函数类型，用于在事件循环启动前配置。
      */
     using ThreadInitCallback = std::function<void(EventLoop*)>;
 
-  public:
+public:
     /**
      * @brief 构造函数，初始化 EventLoopThread 实例。
      * @param[in] callback 线程初始化回调函数，默认为空。
@@ -64,20 +64,20 @@ class EventLoopThread : NoCopyable {
      */
     EventLoop* startLoop();
 
-  private:
+private:
     /**
      * @brief 线程函数，创建并运行事件循环。
      * @note 在新线程中执行，初始化 `EventLoop` 并进入循环。
      */
     void threadFunction();
 
-  private:
-    EventLoop*              m_loop;          ///< 运行在子线程中的事件循环指针
-    zmuduo::thread::Thread  m_thread;        ///< 子线程对象
-    std::mutex              m_mutex;         ///< 保护事件循环初始化的互斥锁
-    std::condition_variable m_condition;     ///< 用于等待事件循环初始化的条件变量
-    ThreadInitCallback      m_initCallback;  ///< 线程初始化回调函数
+private:
+    EventLoop*              m_loop;         ///< 运行在子线程中的事件循环指针
+    thread::Thread          m_thread;       ///< 子线程对象
+    std::mutex              m_mutex;        ///< 保护事件循环初始化的互斥锁
+    std::condition_variable m_condition;    ///< 用于等待事件循环初始化的条件变量
+    ThreadInitCallback      m_initCallback; ///< 线程初始化回调函数
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

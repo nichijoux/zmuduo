@@ -30,8 +30,8 @@ namespace zmuduo::net {
  * loop.loop();
  * @endcode
  */
-class EpollPoller : public Poller {
-  public:
+class EpollPoller final : public Poller {
+public:
     /**
      * @brief 构造函数，初始化 epoll 实例。
      * @param[in] loop 所属的事件循环。
@@ -69,7 +69,7 @@ class EpollPoller : public Poller {
      */
     void removeChannel(Channel* channel) override;
 
-  private:
+private:
     /**
      * @typedef std::vector&lt;epoll_event&gt;
      * @brief 事件列表类型，存储 epoll 事件。
@@ -93,11 +93,11 @@ class EpollPoller : public Poller {
      */
     void update(int operation, Channel* channel) const;
 
-  private:
-    static constexpr int S_INIT_EVENT_LIST_SIZE = 16;  ///< 事件列表的初始容量
-    int                  m_epollFD;                    ///< epoll 文件描述符
-    EventList            m_events;                     ///< 存储 epoll 事件的列表
+private:
+    static constexpr int S_INIT_EVENT_LIST_SIZE = 16; ///< 事件列表的初始容量
+    int                  m_epollFD;                   ///< epoll 文件描述符
+    EventList            m_events;                    ///< 存储 epoll 事件的列表
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

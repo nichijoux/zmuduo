@@ -23,7 +23,7 @@ class EventLoop;
  * @note 一个Channel对应一个文件描述符及其感兴趣的事件
  */
 class Channel : NoCopyable {
-  public:
+public:
     /**
      * @brief 构造函数
      * @param[in] eventLoop 所属事件循环对象
@@ -40,7 +40,7 @@ class Channel : NoCopyable {
      * @brief 处理Poller返回的事件，分发到对应的回调
      * @param[in] receiveTime 事件接收时间戳
      */
-    void handleEvent(const Timestamp& receiveTime);
+    void handleEvent(const Timestamp& receiveTime) const;
 
     /**
      * @brief 设置读取事件的回调函数
@@ -76,16 +76,16 @@ class Channel : NoCopyable {
 
     /**
      * @brief 绑定资源所有权，防止资源在回调时被提前释放
-     * @param[in] obj 被绑定的shared_ptr对象
+     * @param[in] object 被绑定的shared_ptr对象
      * @note 用于解决对象生命周期问题，防止handleEvent过程中对象析构
      */
-    void tie(const std::shared_ptr<void>&);
+    void tie(const std::shared_ptr<void>& object);
 
     /**
      * @brief 设置Channel在Poller中的状态索引
      * @param[in] index 状态索引（用于Poller中记录Channel位置）
      */
-    void setIndex(int index) {
+    void setIndex(const int index) {
         m_index = index;
     }
 
@@ -93,7 +93,7 @@ class Channel : NoCopyable {
      * @brief 设置Poller返回的实际发生的事件
      * @param[in] happenedEvents 实际发生的事件位掩码
      */
-    void setHappenedEvents(uint32_t happenedEvents) {
+    void setHappenedEvents(const uint32_t happenedEvents) {
         m_happenedEvents = happenedEvents;
     }
 
@@ -138,12 +138,13 @@ class Channel : NoCopyable {
             update();
         }
     }
+
     /**
      * @brief 同时启用读写事件监听
      */
     void enableAll() {
         if (!isReading() || !isWriting()) {
-            m_events |= (S_WRITE_EVENT | S_READ_EVENT);
+            m_events |= S_WRITE_EVENT | S_READ_EVENT;
             update();
         }
     }
@@ -219,7 +220,7 @@ class Channel : NoCopyable {
      */
     void remove();
 
-  private:
+private:
     /**
      * @brief 更新事件监听，在Poller中注册或修改事件
      * @note 封装了对epoll_ctl的操作
@@ -230,28 +231,28 @@ class Channel : NoCopyable {
      * @brief 带保护的事件处理函数，保证资源未被释放
      * @param[in] receiveTime 接收时间戳
      */
-    void handleEventWithGuard(const Timestamp& receiveTime);
+    void handleEventWithGuard(const Timestamp& receiveTime) const;
 
-  private:
-    static constexpr int S_NONE_EVENT = 0;                   ///< 不监听任何事件
-    static constexpr int S_READ_EVENT = EPOLLIN | EPOLLPRI;  ///< 读事件（包括普通读、带外数据）
+private:
+    static constexpr int S_NONE_EVENT  = 0;                  ///< 不监听任何事件
+    static constexpr int S_READ_EVENT  = EPOLLIN | EPOLLPRI; ///< 读事件（包括普通读、带外数据）
     static constexpr int S_WRITE_EVENT = EPOLLOUT;           ///< 写事件
 
-  private:
-    EventLoop* m_ownerLoop;       ///< 所属的事件循环对象
-    const int  m_fd;              ///< 被监听的文件描述符
-    uint32_t   m_events;          ///< 当前注册的事件集合
-    uint32_t   m_happenedEvents;  ///< 实际发生的事件集合，由Poller填写
-    int        m_index;           ///< Channel在Poller中的状态（如数组下标或标志）
+private:
+    EventLoop* m_ownerLoop;           ///< 所属的事件循环对象
+    const int  m_fd;                  ///< 被监听的文件描述符
+    uint32_t   m_events         = 0;  ///< 当前注册的事件集合
+    uint32_t   m_happenedEvents = 0;  ///< 实际发生的事件集合，由Poller填写
+    int        m_index          = -1; ///< Channel在Poller中的状态（如数组下标或标志）
 
-    std::weak_ptr<void> m_tie;   ///< 弱引用绑定对象（如TcpConnection）
-    bool                m_tied;  ///< 是否已经绑定对象
+    std::weak_ptr<void> m_tie;          ///< 弱引用绑定对象（如TcpConnection）
+    bool                m_tied = false; ///< 是否已经绑定对象
 
-    ReadEventCallback m_readCallback;   ///< 读事件回调函数
-    EventCallback     m_writeCallback;  ///< 写事件回调函数
-    EventCallback     m_closeCallback;  ///< 关闭事件回调函数
-    EventCallback     m_errorCallback;  ///< 错误事件回调函数
+    ReadEventCallback m_readCallback;  ///< 读事件回调函数
+    EventCallback     m_writeCallback; ///< 写事件回调函数
+    EventCallback     m_closeCallback; ///< 关闭事件回调函数
+    EventCallback     m_errorCallback; ///< 错误事件回调函数
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

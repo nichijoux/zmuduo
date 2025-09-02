@@ -15,7 +15,7 @@ using namespace utils;
 SmtpClient::SmtpClient(EventLoop* loop, const std::string& uri, std::string name)
     : SmtpClient(loop, common_util::CheckNotNull(Uri::Create(uri)), std::move(name)) {}
 
-SmtpClient::SmtpClient(zmuduo::net::EventLoop* loop, const zmuduo::net::Uri& uri, std::string name)
+SmtpClient::SmtpClient(EventLoop* loop, const Uri& uri, std::string name)
     : SmtpClient(loop, uri.createAddress(), std::move(name)) {
     assert(uri.getScheme() == "smtp");
 #ifdef ZMUDUO_ENABLE_OPENSSL
@@ -50,15 +50,15 @@ void SmtpClient::sendInLoop(const EMail::Ptr& email) {
     }
     // 连接smtp服务器
     m_client.connect();
-    std::string username = email->getFromEMailAddress();
-    std::string password = email->getFromEMailPassword();
-    auto        pos      = username.find('@');
+    const std::string username = email->getFromEMailAddress();
+    const std::string password = email->getFromEMailPassword();
+    const auto        pos      = username.find('@');
     m_commands.clear();
     m_commands.emplace_back("HELO " + username.substr(pos + 1) + "\r\n");
     m_commands.emplace_back("AUTH LOGIN\r\n");
     // 用户名和密码
-    m_commands.emplace_back(utils::hash_util::Base64encode(username.substr(0, pos)) + "\r\n");
-    m_commands.emplace_back(utils::hash_util::Base64encode(password) + "\r\n");
+    m_commands.emplace_back(hash_util::Base64encode(username.substr(0, pos)) + "\r\n");
+    m_commands.emplace_back(hash_util::Base64encode(password) + "\r\n");
     m_commands.emplace_back("MAIL FROM:<" + email->getFromEMailAddress() + ">\r\n");
     // 多个收件人
     std::set<std::string> targets;
@@ -100,7 +100,7 @@ void SmtpClient::sendInLoop(const EMail::Ptr& email) {
     buffer << "Subject: " << email->getTitle() << "\r\n";
     std::string boundary;
     if (!entities.empty()) {
-        boundary = utils::hash_util::RandomString(16);
+        boundary = hash_util::RandomString(16);
         buffer << "Content-Type: multipart/mixed;boundary=" << boundary << "\r\n";
     }
     buffer << "MIME-Version: 1.0\r\n";
@@ -108,8 +108,8 @@ void SmtpClient::sendInLoop(const EMail::Ptr& email) {
         buffer << "\r\n--" << boundary << "\r\n";
     }
     buffer << "Content-Type: text/html;charset=\"utf-8\"\r\n"
-           << "\r\n"
-           << email->getBody() << "\r\n";
+        << "\r\n"
+        << email->getBody() << "\r\n";
     for (auto& entity : entities) {
         buffer << "\r\n--" << boundary << "\r\n";
         buffer << entity->toString();
@@ -140,8 +140,7 @@ void SmtpClient::onMessage(const TcpConnectionPtr& connection,
                            const Timestamp&        receiveTime) {
     // 如果有可读取字节则不断循环
     while (buffer.getReadableBytes()) {
-        const char* crlf = buffer.findCRLF();
-        if (crlf) {
+        if (const char* crlf = buffer.findCRLF()) {
             std::string response(buffer.peek(), crlf);
             buffer.retrieveUntil(crlf + strlen(Buffer::S_CRLF));
             handleResponse(response);
@@ -159,9 +158,8 @@ void SmtpClient::handleResponse(const std::string& response) {
     // 获取smtp服务器返回代码
     int code;
     std::from_chars(response.c_str(), response.c_str() + 3, code);
-    bool isLastResponse = (code >= 200 && code < 400);
     // 是否发送完毕
-    if (!isLastResponse) {
+    if (const bool isLastResponse = code >= 200 && code < 400; !isLastResponse) {
         return;
     }
 #define DO_WITH_ERROR(targetCode, errorMessage)                                                      \
@@ -175,12 +173,18 @@ void SmtpClient::handleResponse(const std::string& response) {
     } while (false)
 
     switch (m_state) {
-        case State::CONNECTED: DO_WITH_ERROR(220, "Unexpected response after connection"); break;
-        case State::HELO_SENT: DO_WITH_ERROR(250, "HELO failed"); break;
-        case State::AUTH_SENT: DO_WITH_ERROR(334, "AUTH LOGIN failed"); break;
-        case State::USERNAME_SENT: DO_WITH_ERROR(334, "Username not accepted"); break;
-        case State::PASSWORD_SENT: DO_WITH_ERROR(235, "Authentication failed"); break;
-        case State::MAIL_FROM_SENT: DO_WITH_ERROR(250, "MAIL FROM failed"); break;
+        case State::CONNECTED: DO_WITH_ERROR(220, "Unexpected response after connection");
+            break;
+        case State::HELO_SENT: DO_WITH_ERROR(250, "HELO failed");
+            break;
+        case State::AUTH_SENT: DO_WITH_ERROR(334, "AUTH LOGIN failed");
+            break;
+        case State::USERNAME_SENT: DO_WITH_ERROR(334, "Username not accepted");
+            break;
+        case State::PASSWORD_SENT: DO_WITH_ERROR(235, "Authentication failed");
+            break;
+        case State::MAIL_FROM_SENT: DO_WITH_ERROR(250, "MAIL FROM failed");
+            break;
         case State::RCPT_TO_SENT:
             // 对于每个RCPT TO命令，服务器都会返回250
             if (code == 250) {
@@ -201,10 +205,14 @@ void SmtpClient::handleResponse(const std::string& response) {
                 handleError("RCPT TO failed for one recipient");
             }
             break;
-        case State::DATA_SENT: DO_WITH_ERROR(354, "send DATA failed"); break;
-        case State::QUIT_SENT: DO_WITH_ERROR(250, "send QUIT failed"); break;
-        case State::FINISHED: sendNextCommand(); break;
-        case State::DISCONNECT: m_client.disconnect(); break;
+        case State::DATA_SENT: DO_WITH_ERROR(354, "send DATA failed");
+            break;
+        case State::QUIT_SENT: DO_WITH_ERROR(250, "send QUIT failed");
+            break;
+        case State::FINISHED: sendNextCommand();
+            break;
+        case State::DISCONNECT: m_client.disconnect();
+            break;
     }
 #undef DO_WITH_ERROR
 }
@@ -226,7 +234,7 @@ void SmtpClient::sendNextCommand() {
     sendCommand(cmd);
 }
 
-void SmtpClient::sendCommand(const std::string& cmd) {
+void SmtpClient::sendCommand(const std::string& cmd) const {
     if (m_state != State::DISCONNECT) {
         ZMUDUO_LOG_DEBUG << "SMTP command: " << cmd;
         // 发送命令
@@ -242,4 +250,4 @@ void SmtpClient::handleError(const std::string& error) {
     }
     m_client.disconnect();
 }
-}  // namespace zmuduo::net::email
+} // namespace zmuduo::net::email

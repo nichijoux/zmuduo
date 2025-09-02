@@ -35,7 +35,7 @@ namespace zmuduo::net {
  * @endcode
  */
 class EventLoopThreadPool : NoCopyable {
-  public:
+public:
     /**
      * @typedef std::shared_ptr&lt;EventLoopThreadPool&gt;
      * @brief 智能指针类型
@@ -47,7 +47,7 @@ class EventLoopThreadPool : NoCopyable {
      */
     using ThreadInitCallback = std::function<void(EventLoop*)>;
 
-  public:
+public:
     /**
      * @brief 构造函数，初始化线程池。
      * @param[in] baseLoop 主事件循环指针。
@@ -107,7 +107,7 @@ class EventLoopThreadPool : NoCopyable {
      * @note 使用哈希取模分配 Channel，适合固定分配场景。
      * @throw 如果不在主循环线程中，抛出断言错误。
      */
-    EventLoop* getLoopForHash(size_t hashCode);
+    EventLoop* getLoopForHash(size_t hashCode) const;
 
     /**
      * @brief 获取所有事件循环（主循环和子循环）。
@@ -125,15 +125,15 @@ class EventLoopThreadPool : NoCopyable {
         return m_baseLoop;
     }
 
-  private:
-    EventLoop*                                    m_baseLoop;    ///< 主事件循环
-    bool                                          m_started;     ///< 线程池是否已启动
-    std::string                                   m_name;        ///< 线程池名称
-    int                                           m_numThreads;  ///< 子线程数量
-    int                                           m_next;     ///< 下一次轮询的子循环索引
-    std::vector<std::unique_ptr<EventLoopThread>> m_threads;  ///< 管理的 EventLoopThread 列表
-    std::vector<EventLoop*>                       m_subLoops;  ///< 管理的子循环列表
+private:
+    EventLoop*                                    m_baseLoop;        ///< 主事件循环
+    bool                                          m_started = false; ///< 线程池是否已启动
+    std::string                                   m_name;            ///< 线程池名称
+    int                                           m_numThreads = 0;  ///< 子线程数量
+    int                                           m_next       = 0;  ///< 下一次轮询的子循环索引
+    std::vector<std::unique_ptr<EventLoopThread>> m_threads;         ///< 管理的 EventLoopThread 列表
+    std::vector<EventLoop*>                       m_subLoops;        ///< 管理的子循环列表
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

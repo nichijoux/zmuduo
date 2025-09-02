@@ -139,7 +139,7 @@ class ServletDispatcher : public Copyable {
      * @note 执行流程：拦截器 -> 过滤器 beforeHandle -> Servlet 处理 -> 过滤器 afterHandle。
      * @note 若拦截器返回 false，处理终止，直接返回 response。
      */
-    void handle(HttpRequest& request, HttpResponse& response);
+    void handle(HttpRequest& request, HttpResponse& response) const;
 
     /**
      * @brief 添加精确匹配 Servlet。

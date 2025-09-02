@@ -19,16 +19,19 @@ namespace {
 std::vector<std::string> ensureUserInfoLength(const std::string& userinfo, size_t length) {
     auto parts = Split(userinfo, ':');
     if (parts.size() < length) {
-        parts.resize(length, "");  // 如果数组长度不足，用空字符串填充
+        parts.resize(length, ""); // 如果数组长度不足，用空字符串填充
     }
     return parts;
 }
-}  // namespace
+} // namespace
 
 namespace zmuduo::net::email {
 using namespace zmuduo::utils;
 
-Pop3Client::Pop3Client(EventLoop* loop, const std::string& uri, bool useApop, std::string name)
+Pop3Client::Pop3Client(EventLoop*         loop,
+                       const std::string& uri,
+                       const bool         useApop,
+                       std::string        name)
     : Pop3Client(loop, common_util::CheckNotNull(Uri::Create(uri)), useApop, std::move(name)) {}
 
 Pop3Client::Pop3Client(EventLoop* loop, const Uri& uri, bool useApop, std::string name)
@@ -50,19 +53,15 @@ Pop3Client::Pop3Client(EventLoop*          loop,
                        const Address::Ptr& hostAddress,
                        std::string         username,
                        std::string         password,
-                       bool                useApop,
+                       const bool          useApop,
                        std::string         name) noexcept
     : m_client(loop, hostAddress, std::move(name)),
-      m_state(State::DISCONNECT),
-      m_authenticateCallback(nullptr),
       m_username(std::move(username)),
       m_password(std::move(password)),
+      m_finalPassword(useApop ? "" : m_password),
       m_useApop(useApop),
-      m_maybeRetry(false),
-      m_finalPassword(useApop ? "" : m_password),  // 如果使用APOP，m_final_password稍后设置
-      m_timestamp(),
-      m_commands(),
-      m_callbacks() {
+      // 如果使用APOP，m_final_password稍后设置
+      m_authenticateCallback(nullptr) {
     // 设置连接回调
     m_client.setConnectionCallback(
         [this](const TcpConnectionPtr& connection) { onConnection(connection); });
@@ -89,15 +88,16 @@ void Pop3Client::onMessage(const TcpConnectionPtr& connection,
             // 认证状态
             handleAuthorization(connection, buffer);
             break;
-        case State::TRANSACTION: handleTransaction(buffer); break;
-        case State::UPDATE: connection->shutdown(); break;
+        case State::TRANSACTION: handleTransaction(buffer);
+            break;
+        case State::UPDATE: connection->shutdown();
+            break;
         case State::DISCONNECT: break;
     }
 }
 
 void Pop3Client::handleAuthorization(const TcpConnectionPtr& connection, Buffer& buffer) {
-    auto crlf = buffer.findCRLF();
-    if (crlf) {
+    if (const auto crlf = buffer.findCRLF()) {
         std::string response(buffer.peek(), crlf);
         buffer.retrieveUntil(crlf + strlen(Buffer::S_CRLF));
 #define CHECK_AND_SEND(targetCommand, message)                                                     \
@@ -109,15 +109,15 @@ void Pop3Client::handleAuthorization(const TcpConnectionPtr& connection, Buffer&
             handleError("Authentication failed: " + response);                                     \
         }                                                                                          \
     } while (false)
-        Command command = m_commands.front();
+        const Command command = m_commands.front();
         m_commands.pop();
         switch (command) {
             case Command::NONE: {
                 // 解析服务器问候消息中的时间戳（用于APOP）
                 if (m_useApop) {
-                    size_t start = response.find('<');
-                    size_t end   = response.find('>');
-                    if (start != std::string::npos && end != std::string::npos && end > start) {
+                    const size_t start = response.find('<');
+                    if (const size_t end = response.find('>');
+                        start != std::string::npos && end != std::string::npos && end > start) {
                         m_timestamp     = response.substr(start, end - start + 1);
                         m_finalPassword = hash_util::MD5(m_timestamp + m_password);
                         CHECK_AND_SEND(Command::APOP,
@@ -134,9 +134,8 @@ void Pop3Client::handleAuthorization(const TcpConnectionPtr& connection, Buffer&
                 CHECK_AND_SEND(Command::PASS, "PASS " + m_finalPassword + "\r\n");
                 break;
             }
-            case Command::APOP:  // APOP认证直接进入TRANSACTION状态
-            case Command::PASS:
-                if (preprocessing(response)) {
+            case Command::APOP: // APOP认证直接进入TRANSACTION状态
+            case Command::PASS: if (preprocessing(response)) {
                     m_state = State::TRANSACTION;
                     // 认证通过
                     if (m_authenticateCallback) {
@@ -146,7 +145,8 @@ void Pop3Client::handleAuthorization(const TcpConnectionPtr& connection, Buffer&
                     handleError(response);
                 }
                 break;
-            default: handleError("意外响应命令: "); break;
+            default: handleError("意外响应命令: ");
+                break;
         }
     }
 #undef CHECK_AND_SEND
@@ -155,8 +155,7 @@ void Pop3Client::handleAuthorization(const TcpConnectionPtr& connection, Buffer&
 void Pop3Client::handleTransaction(Buffer& buffer) {
 #define CHECK_AND_HANDLE(command, findStr, handleFunc, type)                                       \
     case command: {                                                                                \
-        auto str = buffer.find(findStr);                                                           \
-        if (str) {                                                                                 \
+        if (auto str = buffer.find(findStr);str) {                                                                                 \
             m_commands.pop();                                                                      \
             std::string response(buffer.peek(), str);                                              \
             buffer.retrieveUntil(str + strlen(findStr));                                           \
@@ -176,10 +175,10 @@ void Pop3Client::handleTransaction(Buffer& buffer) {
         }                                                                                          \
         break;                                                                                     \
     }
+
     do {
         // 获取当前command对应的命令,不需要加锁,因为只会在onMessage中pop
-        Command command = m_commands.front();
-        switch (command) {
+        switch (Command command = m_commands.front()) {
             CHECK_AND_HANDLE(Command::STAT, Buffer::S_CRLF, handleStat, Pop3StatResponse)
             CHECK_AND_HANDLE(Command::UIDL, ZMUDUO_EMAIL_END_TAG, handleUidl, Pop3UidlResponse)
             CHECK_AND_HANDLE(Command::UIDL_N, Buffer::S_CRLF, handleUidlN, Pop3UidlNResponse)
@@ -192,8 +191,7 @@ void Pop3Client::handleTransaction(Buffer& buffer) {
             CHECK_AND_HANDLE(Command::NOOP, Buffer::S_CRLF, handleNoop, Pop3NoopResponse)
             CHECK_AND_HANDLE(Command::CAPA, ZMUDUO_EMAIL_END_TAG, handleCapa, Pop3CapaResponse)
             CHECK_AND_HANDLE(Command::QUIT, Buffer::S_CRLF, handleQuit, Pop3QuitResponse)
-            default:
-                handleError("command类型错误" + std::to_string(static_cast<int>(command)));
+            default: handleError("command类型错误" + std::to_string(static_cast<int>(command)));
                 break;
         }
     } while (m_maybeRetry);
@@ -316,25 +314,25 @@ void Pop3Client::handleRetr(const std::string& response) {
 
     std::getline(iss, okLine);
     if (okLine.rfind("+OK", 0) != 0) {
-        return;  // 忽略非成功响应
+        return; // 忽略非成功响应
     }
 
     std::ostringstream contentStream;
 
     while (std::getline(iss, line)) {
         if (!line.empty() && line.back() == '\r') {
-            line.pop_back();  // 移除末尾的 \r
+            line.pop_back(); // 移除末尾的 \r
         }
         if (line == ".") {
-            break;  // 结束标志
+            break; // 结束标志
         }
         // POP3 为透明传输，若某行原本是以 "." 开头，服务器会变成 ".."
         // 所以客户端需要将 ".." 开头的行还原为 "."
         if (!line.empty() && line[0] == '.' && line.size() > 1 && line[1] == '.') {
-            line.erase(0, 1);  // 移除多余的一个点
+            line.erase(0, 1); // 移除多余的一个点
         }
 
-        contentStream << line << "\r\n";  // 保持邮件格式
+        contentStream << line << "\r\n"; // 保持邮件格式
     }
     auto temp = contentStream.str();
     GET_AND_CALL_CALLBACK(std::make_shared<Pop3RetrResponse>(contentStream.str()));
@@ -369,14 +367,14 @@ void Pop3Client::handleTop(const std::string& response) {
     // 不断读取直到遇到.
     while (std::getline(iss, line)) {
         if (!line.empty() && line.back() == '\r') {
-            line.pop_back();  // 移除末尾的 \r
+            line.pop_back(); // 移除末尾的 \r
         }
         if (line == ".") {
-            break;  // 结束标志
+            break; // 结束标志
         }
         if (!inBody) {
             if (line.empty()) {
-                inBody = true;  // 空行之后为正文预览
+                inBody = true; // 空行之后为正文预览
             } else {
                 headerStream << line << "\r\n";
             }
@@ -446,7 +444,7 @@ void Pop3Client::uidl(std::function<void(const Pop3UidlResponse::Ptr&)> callback
     PUSH_INTO_QUEUE(Command::UIDL, "UIDL\r\n", Pop3UidlResponse);
 }
 
-void Pop3Client::uidl(int num, std::function<void(const Pop3UidlNResponse::Ptr&)> callback) {
+void Pop3Client::uidl(const int num, std::function<void(const Pop3UidlNResponse::Ptr&)> callback) {
     PUSH_INTO_QUEUE(Command::UIDL_N, "UIDL " + std::to_string(num) + "\r\n", Pop3UidlNResponse);
 }
 
@@ -454,14 +452,15 @@ void Pop3Client::list(std::function<void(const Pop3ListResponse::Ptr&)> callback
     PUSH_INTO_QUEUE(Command::LIST, "LIST\r\n", Pop3ListResponse);
 }
 
-void Pop3Client::list(int num, std::function<void(const Pop3ListNResponse::Ptr&)> callback) {
+void Pop3Client::list(const int num, std::function<void(const Pop3ListNResponse::Ptr&)> callback) {
     PUSH_INTO_QUEUE(Command::LIST_N, "LIST " + std::to_string(num) + "\r\n", Pop3ListNResponse);
 }
-void Pop3Client::retr(int num, std::function<void(const Pop3RetrResponse::Ptr&)> callback) {
+
+void Pop3Client::retr(const int num, std::function<void(const Pop3RetrResponse::Ptr&)> callback) {
     PUSH_INTO_QUEUE(Command::RETR, "RETR " + std::to_string(num) + "\r\n", Pop3RetrResponse);
 }
 
-void Pop3Client::dele(int num, std::function<void(const Pop3DeleResponse::Ptr&)> callback) {
+void Pop3Client::dele(const int num, std::function<void(const Pop3DeleResponse::Ptr&)> callback) {
     PUSH_INTO_QUEUE(Command::DELE, "DELE " + std::to_string(num) + "\r\n", Pop3DeleResponse);
 }
 
@@ -473,24 +472,26 @@ void Pop3Client::rset(std::function<void(const Pop3RsetResponse::Ptr&)> callback
     PUSH_INTO_QUEUE(Command::RSET, "RSET\r\n", Pop3RsetResponse);
 }
 
-void Pop3Client::top(int num, int line, std::function<void(const Pop3TopResponse::Ptr&)> callback) {
+void Pop3Client::top(const int                                        num,
+                     const int                                        line,
+                     std::function<void(const Pop3TopResponse::Ptr&)> callback) {
     PUSH_INTO_QUEUE(Command::TOP,
                     "TOP " + std::to_string(num) + " " + std::to_string(line) + "\r\n",
                     Pop3TopResponse);
 }
+
 void Pop3Client::quit(std::function<void(const Pop3QuitResponse::Ptr&)> callback) {
     PUSH_INTO_QUEUE(Command::QUIT, "QUIT\r\n", Pop3QuitResponse);
 }
 
 template <typename T>
 Pop3Client::CommandCallback Pop3Client::wrapCallback(std::function<void(std::shared_ptr<T>)> cb) {
-    return [cb = std::move(cb)](Pop3Response::Ptr resp) {
+    return [cb = std::move(cb)](const Pop3Response::Ptr& resp) {
         if (!resp) {
             cb(nullptr);
             return;
         }
-        auto casted = std::dynamic_pointer_cast<T>(resp);
-        if (casted) {
+        if (auto casted = std::dynamic_pointer_cast<T>(resp)) {
             cb(casted);
         } else {
             cb(nullptr);
@@ -499,4 +500,4 @@ Pop3Client::CommandCallback Pop3Client::wrapCallback(std::function<void(std::sha
 }
 
 #undef PUSH_INTO_QUEUE
-}  // namespace zmuduo::net::email
+} // namespace zmuduo::net::email

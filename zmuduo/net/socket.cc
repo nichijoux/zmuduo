@@ -19,7 +19,7 @@ struct SSLInit {
 };
 
 static SSLInit s_init;
-}  // namespace
+} // namespace
 #endif
 
 namespace zmuduo::net {
@@ -35,10 +35,10 @@ void Socket::bind(const Address::Ptr& localAddress) const {
     }
 }
 
-void Socket::setReuseAddress(bool on) const {
+void Socket::setReuseAddress(const bool on) const {
 #ifdef SO_REUSEADDR
-    int optval = on ? 1 : 0;
-    setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &optval, static_cast<socklen_t>(sizeof(optval)));
+    const int optVal = on ? 1 : 0;
+    setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &optVal, sizeof(optVal));
 #else
     if (on) {
         LOG_ERROR("SO_REUSEADDR is not supported.");
@@ -46,10 +46,10 @@ void Socket::setReuseAddress(bool on) const {
 #endif
 }
 
-void Socket::setReusePort(bool on) const {
+void Socket::setReusePort(const bool on) const {
 #ifdef SO_REUSEPORT
-    int optval = on ? 1 : 0;
-    setsockopt(m_fd, SOL_SOCKET, SO_REUSEPORT, &optval, static_cast<socklen_t>(sizeof(optval)));
+    const int optVal = on ? 1 : 0;
+    setsockopt(m_fd, SOL_SOCKET, SO_REUSEPORT, &optVal, sizeof(optVal));
 #else
     if (on) {
         LOG_ERROR("SO_REUSEPORT is not supported.");
@@ -57,7 +57,7 @@ void Socket::setReusePort(bool on) const {
 #endif
 }
 
-int Socket::CreateNonBlockingSocket(int domain, int type, int protocol) {
+int Socket::CreateNonBlockingSocket(const int domain, const int type, const int protocol) {
 #if VALGRIND
     int fd = ::socket(domain, type, protocol);
     if (fd < 0) {
@@ -65,7 +65,7 @@ int Socket::CreateNonBlockingSocket(int domain, int type, int protocol) {
     }
     sockets::setNonBlockAndCloseOnExec(fd);
 #else
-    int fd = ::socket(domain, type | SOCK_NONBLOCK | SOCK_CLOEXEC, protocol);
+    const int fd = ::socket(domain, type | SOCK_NONBLOCK | SOCK_CLOEXEC, protocol);
     if (fd < 0) {
         ZMUDUO_LOG_FMT_FATAL("create socket failed: %d", errno);
     }
@@ -87,7 +87,7 @@ int TcpSocket::accept(Address::Ptr& peerAddress) {
     int remoteFD = ::accept(m_fd, const_cast<sockaddr*>(sockets::sockaddr_cast(&addr)), &length);
     sockets::setNonBlockAndCloseOnExec(remoteFD);
 #else
-    int remoteFD = ::accept4(m_fd, const_cast<sockaddr*>(sockets::sockaddr_cast(&addr)), &length,
+    const int remoteFD = ::accept4(m_fd, const_cast<sockaddr*>(sockets::sockaddr_cast(&addr)), &length,
                              SOCK_NONBLOCK | SOCK_CLOEXEC);
 #endif
     if (remoteFD >= 0) {
@@ -97,9 +97,9 @@ int TcpSocket::accept(Address::Ptr& peerAddress) {
             case EAGAIN:
             case ECONNABORTED:
             case EINTR:
-            case EPROTO:  // ???
+            case EPROTO: // ???
             case EPERM:
-            case EMFILE:  // per-process lmit of open file desctiptor ???
+            case EMFILE: // per-process lmit of open file desctiptor ???
                 break;
             case EBADF:
             case EFAULT:
@@ -123,10 +123,10 @@ void TcpSocket::shutdownWrite() const {
     }
 }
 
-void TcpSocket::setKeepAlive(bool on) const {
+void TcpSocket::setKeepAlive(const bool on) const {
 #ifdef SO_KEEPALIVE
-    int optval = on ? 1 : 0;
-    setsockopt(m_fd, SOL_SOCKET, SO_KEEPALIVE, &optval, static_cast<socklen_t>(sizeof(optval)));
+    const int optVal = on ? 1 : 0;
+    setsockopt(m_fd, SOL_SOCKET, SO_KEEPALIVE, &optVal, sizeof(optVal));
 #else
     if (on) {
         LOG_ERROR("SO_KEEPALIVE is not supported.");
@@ -134,10 +134,10 @@ void TcpSocket::setKeepAlive(bool on) const {
 #endif
 }
 
-void TcpSocket::setTcpNoDelay(bool on) const {
+void TcpSocket::setTcpNoDelay(const bool on) const {
 #ifdef TCP_NODELAY
-    int optval = on ? 1 : 0;
-    setsockopt(m_fd, IPPROTO_TCP, TCP_NODELAY, &optval, static_cast<socklen_t>(sizeof(optval)));
+    const int optVal = on ? 1 : 0;
+    setsockopt(m_fd, IPPROTO_TCP, TCP_NODELAY, &optVal, sizeof(optVal));
 #else
     if (on) {
         LOG_ERROR("TCP_NODELAY is not supported.");
@@ -150,4 +150,4 @@ bool TcpSocket::getTcpInfo(tcp_info* info) const {
     bzero(info, len);
     return ::getsockopt(m_fd, SOL_TCP, TCP_INFO, info, &len) == 0;
 }
-}  // namespace zmuduo::net
+} // namespace zmuduo::net

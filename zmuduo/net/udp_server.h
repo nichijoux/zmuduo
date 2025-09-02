@@ -39,7 +39,7 @@ namespace zmuduo::net {
  * @endcode
  */
 class UdpServer : NoCopyable {
-  public:
+public:
     /**
      * @typedef std::function&lt;void(Buffer& inputBuffer, const Address::Ptr& peerAddress, Buffer&
      * outputBuffer)&gt;
@@ -49,9 +49,9 @@ class UdpServer : NoCopyable {
      * @param[in] peerAddress 来源地址
      */
     using MessageCallback =
-        std::function<void(UdpServer& server, Buffer& buffer, const Address::Ptr& peerAddress)>;
+    std::function<void(UdpServer& server, Buffer& buffer, const Address::Ptr& peerAddress)>;
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] loop 事件循环，管理异步 I/O。
@@ -79,7 +79,7 @@ class UdpServer : NoCopyable {
      * @throw std::runtime_error 如果 num 小于 0，抛出断言错误。
      * @note 必须在 start() 前调用。
      */
-    void setThreadNum(int num);
+    void setThreadNum(int num) const;
 
     /**
      * @brief 设置接收消息的回调函数。
@@ -107,7 +107,7 @@ class UdpServer : NoCopyable {
      * @param[in] peerAddress 目标地址。
      * @note 异步调用 sendInLoop，通过线程池分发。
      */
-    void send(const void* data, size_t length, const Address::Ptr& peerAddress);
+    void send(const void* data, size_t length, const Address::Ptr& peerAddress) const;
     /**
      * @brief 获取主事件循环。
      * @return 主事件循环指针。
@@ -132,7 +132,7 @@ class UdpServer : NoCopyable {
         return m_threadPool;
     }
 
-  private:
+private:
     /**
      * @brief 在事件循环线程中发送数据。
      * @param[in] data 数据指针。
@@ -140,7 +140,7 @@ class UdpServer : NoCopyable {
      * @param[in] peerAddress 目标地址。
      * @note 使用 sendto 发送数据。
      */
-    void sendInLoop(const void* data, size_t length, const Address::Ptr& peerAddress);
+    void sendInLoop(const void* data, size_t length, const Address::Ptr& peerAddress) const;
 
     /**
      * @brief 处理读事件。
@@ -154,16 +154,16 @@ class UdpServer : NoCopyable {
      */
     void newMessage();
 
-  private:
-    EventLoop*               m_eventLoop;        ///< 主事件循环
-    const std::string        m_ipPort;           ///< 监听地址（IP:Port 格式）
-    const std::string        m_name;             ///< 服务器名称
-    UdpSocket                m_socket;           ///< UDP socket
-    Channel                  m_channel;          ///< socket 事件通道
-    EventLoopThreadPool::Ptr m_threadPool;       ///< 事件循环线程池
-    MessageCallback          m_messageCallback;  ///< 消息处理回调
-    std::atomic<bool>        m_started;          ///< 服务器是否已启动
+private:
+    EventLoop*               m_eventLoop;       ///< 主事件循环
+    const std::string        m_ipPort;          ///< 监听地址（IP:Port 格式）
+    const std::string        m_name;            ///< 服务器名称
+    UdpSocket                m_socket;          ///< UDP socket
+    Channel                  m_channel;         ///< socket 事件通道
+    EventLoopThreadPool::Ptr m_threadPool;      ///< 事件循环线程池
+    MessageCallback          m_messageCallback; ///< 消息处理回调
+    std::atomic<bool>        m_started;         ///< 服务器是否已启动
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

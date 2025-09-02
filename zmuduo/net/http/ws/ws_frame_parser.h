@@ -36,14 +36,14 @@ namespace zmuduo::net::http::ws {
  * @endcode
  */
 class WSFrameParser : NoCopyable {
-  public:
+public:
     /**
      * @typedef std::shared_ptr&lt;WSFrameParser&gt;
      * @brief ws帧解析器智能指针
      */
     using Ptr = std::shared_ptr<WSFrameParser>;
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @note 初始化解析器状态为 NOT_START，清空错误信息和消息数据。
@@ -71,7 +71,7 @@ class WSFrameParser : NoCopyable {
      * @retval -1 解析错误（可通过 getErrorMessage 获取错误信息）。
      * @note 将字符串转换为 Buffer 后调用 Buffer 版本的 parse。
      */
-    int parse(const std::string& string, bool isClient) {
+    int parse(const std::string& string, const bool isClient) {
         Buffer buffer;
         buffer.write(string);
         return parse(buffer, isClient);
@@ -104,19 +104,19 @@ class WSFrameParser : NoCopyable {
         return m_error;
     }
 
-  private:
+private:
     /**
      * @enum State
      * @brief 解析状态枚举。
      */
     enum class State {
-        NOT_START,        ///< 未开始解析
-        HEAD_PARSED,      ///< 帧头部解析完成
-        LENGTH_PARSED,    ///< 扩展长度解析完成
-        MASK_KEY_PARSED,  ///< 掩码密钥解析完成
-        WAIT_OTHER,       ///< 等待后续分片数据
-        FINISH,           ///< 解析完成
-        ERROR             ///< 解析错误
+        NOT_START,       ///< 未开始解析
+        HEAD_PARSED,     ///< 帧头部解析完成
+        LENGTH_PARSED,   ///< 扩展长度解析完成
+        MASK_KEY_PARSED, ///< 掩码密钥解析完成
+        WAIT_OTHER,      ///< 等待后续分片数据
+        FINISH,          ///< 解析完成
+        ERROR            ///< 解析错误
     };
 
     /**
@@ -158,14 +158,14 @@ class WSFrameParser : NoCopyable {
         m_state = State::ERROR;
     }
 
-  private:
-    State m_state;               ///< 当前解析状态
-    std::string m_error;         ///< 错误信息
-    WSFrameHead m_head;          ///< 帧头部
-    int64_t m_payloadLength;     ///< payload 长度
-    char m_maskKey[4];           ///< 掩码密钥
-    WSFrameMessage m_message;    ///< 解析后的消息
+private:
+    State          m_state;         ///< 当前解析状态
+    std::string    m_error;         ///< 错误信息
+    WSFrameHead    m_head;          ///< 帧头部
+    int64_t        m_payloadLength; ///< payload 长度
+    char           m_maskKey[4];    ///< 掩码密钥
+    WSFrameMessage m_message;       ///< 解析后的消息
 };
-}  // namespace zmuduo::net::http::ws
+} // namespace zmuduo::net::http::ws
 
 #endif

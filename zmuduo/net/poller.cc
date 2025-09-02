@@ -3,12 +3,12 @@
 #include "zmuduo/net/event_loop.h"
 
 namespace zmuduo::net {
-void Poller::assertInLoopThread() {
+void Poller::assertInLoopThread() const {
     m_ownerLoop->assertInLoopThread();
 }
 
-bool Poller::hasChannel(Channel* channel) const {
-    auto it = m_channels.find(channel->getFD());
+bool Poller::hasChannel(const Channel* channel) const {
+    const auto it = m_channels.find(channel->getFD());
     return it != m_channels.end() && it->second == channel;
 }
 }  // namespace zmuduo::net

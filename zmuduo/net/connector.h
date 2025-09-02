@@ -34,7 +34,7 @@ class EventLoop;
  * @endcode
  */
 class Connector : NoCopyable, public std::enable_shared_from_this<Connector> {
-  public:
+public:
     /**
      * @typedef std::function&lt;void(int socketFD)&gt;
      * @brief 新连接建立时的回调函数类型，传递新连接的 socket 文件描述符。
@@ -42,7 +42,7 @@ class Connector : NoCopyable, public std::enable_shared_from_this<Connector> {
      */
     using NewConnectionCallback = std::function<void(int socketFD)>;
 
-  public:
+public:
     /**
      * @brief 构造函数，初始化 Connector 实例。
      * @param[in] loop 所属的事件循环，用于异步处理连接事件。
@@ -94,21 +94,21 @@ class Connector : NoCopyable, public std::enable_shared_from_this<Connector> {
         return m_serverAddress;
     }
 
-  private:
+private:
     /**
      * @enum State
      * @brief 表示 Connector 的连接状态。
      */
     enum class State {
-        DISCONNECTED,  ///< 断开连接
-        CONNECTING,    ///< 连接中
-        CONNECTED      ///< 成功连接
+        DISCONNECTED, ///< 断开连接
+        CONNECTING,   ///< 连接中
+        CONNECTED     ///< 成功连接
     };
 
-    static constexpr int S_MAX_RETRY_DELAY_MS = 30 * 1000;  ///< 最大重试延迟时间（毫秒）
-    static constexpr int S_INIT_RETRY_DELAY_MS = 500;  ///< 初始重试延迟时间（毫秒）
+    static constexpr int S_MAX_RETRY_DELAY_MS  = 30 * 1000; ///< 最大重试延迟时间（毫秒）
+    static constexpr int S_INIT_RETRY_DELAY_MS = 500;       ///< 初始重试延迟时间（毫秒）
 
-  private:
+private:
     /**
      * @brief 在事件循环线程中启动连接流程。
      * @note 确保在事件循环线程中调用，检查连接状态并调用 connect。
@@ -163,15 +163,15 @@ class Connector : NoCopyable, public std::enable_shared_from_this<Connector> {
      */
     void resetChannel();
 
-  private:
-    EventLoop*               m_eventLoop;              ///< 所属事件循环
-    Address::Ptr             m_serverAddress;          ///< 服务器地址
-    bool                     m_connect;                ///< 是否启动连接
-    State                    m_state;                  ///< 当前连接状态
-    std::unique_ptr<Channel> m_channel;                ///< 负责连接事件监听的Channel
-    NewConnectionCallback    m_newConnectionCallback;  ///< 新连接回调
-    int                      m_retryDelayMs;           ///< 当前重试延迟时间（毫秒）
+private:
+    EventLoop*               m_eventLoop;                            ///< 所属事件循环
+    Address::Ptr             m_serverAddress;                        ///< 服务器地址
+    bool                     m_connect = false;                      ///< 是否启动连接
+    State                    m_state   = State::DISCONNECTED;        ///< 当前连接状态
+    std::unique_ptr<Channel> m_channel;                              ///< 负责连接事件监听的Channel
+    NewConnectionCallback    m_newConnectionCallback;                ///< 新连接回调
+    int                      m_retryDelayMs = S_INIT_RETRY_DELAY_MS; ///< 当前重试延迟时间（毫秒）
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

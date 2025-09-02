@@ -4,20 +4,15 @@
 #include <zmuduo/base/logger.h>
 
 namespace zmuduo::net {
-Channel::Channel(EventLoop* eventLoop, int fd)
+Channel::Channel(EventLoop* eventLoop, const int fd)
     : m_ownerLoop(eventLoop),
-      m_fd(fd),
-      m_events(0),
-      m_happenedEvents(0),
-      m_index(-1),
-      m_tied(false) {}
+      m_fd(fd) {}
 
-void Channel::handleEvent(const Timestamp& receiveTime) {
+void Channel::handleEvent(const Timestamp& receiveTime) const {
     if (m_tied) {
         // 绑定过,获取一个shared指针
-        std::shared_ptr<void> guard = m_tie.lock();
         // 如果还存活
-        if (guard) {
+        if (std::shared_ptr<void> guard = m_tie.lock()) {
             handleEventWithGuard(receiveTime);
         }
     } else {
@@ -25,8 +20,8 @@ void Channel::handleEvent(const Timestamp& receiveTime) {
     }
 }
 
-void Channel::tie(const std::shared_ptr<void>& obj) {
-    m_tie  = obj;
+void Channel::tie(const std::shared_ptr<void>& object) {
+    m_tie  = object;
     m_tied = true;
 }
 
@@ -39,15 +34,14 @@ void Channel::update() {
     m_ownerLoop->updateChannel(this);
 }
 
-void Channel::handleEventWithGuard(const Timestamp& receiveTime) {
+void Channel::handleEventWithGuard(const Timestamp& receiveTime) const {
     ZMUDUO_LOG_FMT_INFO("channel handleEvent revents:%d", m_happenedEvents);
     if ((m_happenedEvents & POLLHUP) && !(m_happenedEvents & EPOLLIN)) {
         if (m_closeCallback) {
             m_closeCallback();
         }
     }
-    if (m_happenedEvents & POLLNVAL)
-    {
+    if (m_happenedEvents & POLLNVAL) {
         ZMUDUO_LOG_WARNING << "fd = " << m_fd << " Channel::handleEventWithGuard() POLLNVAL";
     }
     // 错误事件
@@ -69,5 +63,4 @@ void Channel::handleEventWithGuard(const Timestamp& receiveTime) {
         }
     }
 }
-
-}  // namespace zmuduo::net
+} // namespace zmuduo::net

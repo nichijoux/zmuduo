@@ -36,14 +36,14 @@ namespace zmuduo::net::http {
  * @endcode
  */
 class HttpServer : NoCopyable {
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] loop 事件循环，管理异步 I/O。
      * @param[in] listenAddress 监听地址（如 "0.0.0.0:8080"）。
      * @param[in] name 服务器名称，用于日志和响应头部。
      * @param[in] keepAlive 是否启用长连接（默认 false）。
-     * @param[in] option TcpServer 配置选项（默认 false）。
+     * @param[in] reusePort TcpServer 配置选项（默认 false）。
      * @note 初始化 TcpServer 和 ServletDispatcher，设置连接和消息回调。
      */
     explicit HttpServer(EventLoop*          loop,
@@ -79,7 +79,7 @@ class HttpServer : NoCopyable {
      * @param[in] num 工作线程数（0 表示单线程）。
      * @note 必须在 start() 前调用。
      */
-    void setThreadNum(int num) {
+    void setThreadNum(const int num) const {
         m_server.setThreadNum(num);
     }
 
@@ -143,7 +143,7 @@ class HttpServer : NoCopyable {
      * @brief 设置是否启用长连接。
      * @param[in] keepAlive 是否启用长连接。
      */
-    void setKeepAlive(bool keepAlive) {
+    void setKeepAlive(const bool keepAlive) {
         m_keepAlive = keepAlive;
     }
 
@@ -156,13 +156,13 @@ class HttpServer : NoCopyable {
         return m_keepAlive;
     }
 
-  private:
+private:
     /**
      * @brief 连接回调函数。
      * @param[in] connection TCP 连接智能指针。
      * @note 连接建立时初始化 HttpContext，连接断开时记录日志。
      */
-    void onConnection(const TcpConnectionPtr& connection);
+    void onConnection(const TcpConnectionPtr& connection) const;
 
     /**
      * @brief 消息回调函数。
@@ -172,13 +172,13 @@ class HttpServer : NoCopyable {
      * @note 解析请求、分发处理、发送响应，并根据 keepAlive 和请求状态决定是否关闭连接。
      */
     void
-    onMessage(const TcpConnectionPtr& connection, Buffer& buffer, const Timestamp& receiveTime);
+    onMessage(const TcpConnectionPtr& connection, Buffer& buffer, const Timestamp& receiveTime) const;
 
-  private:
-    TcpServer         m_server;      ///< 底层 TCP 服务器
-    ServletDispatcher m_dispatcher;  ///< Servlet 分发器
-    bool              m_keepAlive;   ///< 是否支持长连接
+private:
+    TcpServer         m_server;     ///< 底层 TCP 服务器
+    ServletDispatcher m_dispatcher; ///< Servlet 分发器
+    bool              m_keepAlive;  ///< 是否支持长连接
 };
-}  // namespace zmuduo::net::http
+} // namespace zmuduo::net::http
 
 #endif

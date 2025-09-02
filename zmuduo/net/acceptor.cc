@@ -8,12 +8,10 @@
 #include <unistd.h>
 
 namespace zmuduo::net {
-Acceptor::Acceptor(EventLoop* loop, const Address::Ptr& listenAddress, bool reuseport)
+Acceptor::Acceptor(EventLoop* loop, const Address::Ptr& listenAddress, const bool reuseport)
     : m_eventLoop(loop),
-      m_connectCallback(nullptr),
       m_acceptSocket(TcpSocket::Create(listenAddress->getFamily())),
       m_acceptChannel(loop, m_acceptSocket.getFD()),
-      m_listening(false),
       m_idleFD(::open("/dev/null", O_RDONLY | O_CLOEXEC)) {
     assert(m_idleFD >= 0);
     // 设置socket选项
@@ -46,9 +44,8 @@ void Acceptor::handleRead() {
     // 定义一个用于存储远程地址的变量
     Address::Ptr peerAddress;
     // 接受新的连接，返回新的连接文件描述符
-    int connectFD = m_acceptSocket.accept(peerAddress);
     // 如果接受连接成功
-    if (connectFD >= 0) {
+    if (const int connectFD = m_acceptSocket.accept(peerAddress); connectFD >= 0) {
         // 如果存在连接回调函数
         if (m_connectCallback) {
             // 调用连接回调函数，传入新的连接文件描述符和远程地址
@@ -73,5 +70,4 @@ void Acceptor::handleRead() {
         }
     }
 }
-
-}  // namespace zmuduo::net
+} // namespace zmuduo::net

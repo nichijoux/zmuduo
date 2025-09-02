@@ -12,7 +12,6 @@
 #include <string>
 
 namespace zmuduo::net {
-
 /**
  * @class UdpClient
  * @brief UDP 客户端类，用于异步发送和接收 UDP 数据。
@@ -44,7 +43,7 @@ namespace zmuduo::net {
  * @endcode
  */
 class UdpClient : NoCopyable {
-  public:
+public:
     /**
      * @brief 消息回调类型
      * @typedef std::function&lt;void(UdpClient& client, Buffer& inBuffer)&gt;
@@ -52,9 +51,9 @@ class UdpClient : NoCopyable {
      * @param[in] buffer 接收到的消息缓冲区
      */
     using MessageCallback =
-        std::function<void(UdpClient& client, Buffer& buffer)>;
+    std::function<void(UdpClient& client, Buffer& buffer)>;
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] loop 事件循环指针。
@@ -73,12 +72,12 @@ class UdpClient : NoCopyable {
     /**
      * @brief 启动客户端，启用读事件监听。
      */
-    void start();
+    void start() const;
 
     /**
      * @brief 停止客户端，禁用所有事件监听。
      */
-    void stop();
+    void stop() const;
 
     /**
      * @brief 发送数据到服务器。
@@ -86,7 +85,7 @@ class UdpClient : NoCopyable {
      * @param[in] length 数据长度。
      * @note 异步调用 sendInLoop，确保线程安全。
      */
-    void send(const void* data, size_t length);
+    void send(const void* data, size_t length) const;
 
     /**
      * @brief 发送字符串数据到服务器。
@@ -106,14 +105,14 @@ class UdpClient : NoCopyable {
         m_messageCallback = std::move(callback);
     }
 
-  private:
+private:
     /**
      * @brief 在事件循环线程中发送数据。
      * @param[in] message 待发送的数据指针。
      * @param[in] length 数据长度。
      * @note 使用 sendto 发送数据到服务器地址。
      */
-    void sendInLoop(const void* message, size_t length);
+    void sendInLoop(const void* message, size_t length) const;
 
     /**
      * @brief 处理读事件，接收服务器数据。
@@ -121,16 +120,15 @@ class UdpClient : NoCopyable {
      */
     void handleRead();
 
-  private:
-    EventLoop*               m_eventLoop;        ///< 事件循环
-    Address::Ptr             m_serverAddress;    ///< 服务器地址
-    std::string              m_name;             ///< 客户端名称
-    UdpSocket                m_socket;           ///< UDP 套接字
-    std::unique_ptr<Channel> m_channel;          ///< 事件通道
-    Buffer                   m_inputBuffer;      ///< 输入缓冲区
-    MessageCallback          m_messageCallback;  ///< 消息回调
+private:
+    EventLoop*               m_eventLoop;       ///< 事件循环
+    Address::Ptr             m_serverAddress;   ///< 服务器地址
+    std::string              m_name;            ///< 客户端名称
+    UdpSocket                m_socket;          ///< UDP 套接字
+    std::unique_ptr<Channel> m_channel;         ///< 事件通道
+    Buffer                   m_inputBuffer;     ///< 输入缓冲区
+    MessageCallback          m_messageCallback; ///< 消息回调
 };
-
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

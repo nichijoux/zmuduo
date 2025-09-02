@@ -10,7 +10,6 @@
 #include <shared_mutex>
 
 namespace zmuduo {
-
 /**
  * @class Semaphore
  * @brief 封装 POSIX 信号量的轻量级同步原语类
@@ -21,7 +20,7 @@ namespace zmuduo {
  * @note 该类不可拷贝（继承自 NoCopyable）
  */
 class Semaphore : NoCopyable {
-  public:
+public:
     /**
      * @brief 构造函数
      *
@@ -58,8 +57,8 @@ class Semaphore : NoCopyable {
      */
     void notify();
 
-  private:
-    sem_t m_semaphore;  ///< POSIX 信号量对象
+private:
+    sem_t m_semaphore; ///< POSIX 信号量对象
 };
 
 /**
@@ -70,19 +69,20 @@ class Semaphore : NoCopyable {
  * 支持手动锁定/解锁和尝试锁定操作。
  */
 class ReadWriteLock {
-  public:
+public:
     /**
      * @class ReadGuard
      * @brief 读锁守卫(RAII)，自动管理共享锁的生命周期
      */
     class ReadGuard : NoCopyable, NoMoveable {
-      public:
+    public:
         /**
          * @brief 构造函数，获取共享读锁
          * @param[in] mutex 要锁定的读写锁引用
          * @note 会阻塞直到获取锁成功
          */
-        explicit ReadGuard(std::shared_mutex& mutex) : m_mutex(mutex) {
+        explicit ReadGuard(std::shared_mutex& mutex)
+            : m_mutex(mutex) {
             m_mutex.lock_shared();
         }
 
@@ -93,8 +93,8 @@ class ReadWriteLock {
             m_mutex.unlock_shared();
         }
 
-      private:
-        std::shared_mutex& m_mutex;  ///< 关联的读写锁引用
+    private:
+        std::shared_mutex& m_mutex; ///< 关联的读写锁引用
     };
 
     /**
@@ -102,13 +102,14 @@ class ReadWriteLock {
      * @brief 写锁守卫(RAII)，自动管理独占锁的生命周期
      */
     class WriteGuard : NoCopyable, NoMoveable {
-      public:
+    public:
         /**
          * @brief 构造函数，获取独占写锁
          * @param[in] mutex 要锁定的读写锁引用
          * @note 会阻塞直到获取锁成功
          */
-        explicit WriteGuard(std::shared_mutex& mutex) : m_mutex(mutex) {
+        explicit WriteGuard(std::shared_mutex& mutex)
+            : m_mutex(mutex) {
             m_mutex.lock();
         }
 
@@ -119,8 +120,8 @@ class ReadWriteLock {
             m_mutex.unlock();
         }
 
-      private:
-        std::shared_mutex& m_mutex;  ///< 关联的读写锁引用
+    private:
+        std::shared_mutex& m_mutex; ///< 关联的读写锁引用
     };
 
     /**
@@ -128,14 +129,15 @@ class ReadWriteLock {
      * @brief 尝试读锁守卫(RAII)，非阻塞获取共享锁
      */
     class TryReadGuard : NoCopyable, NoMoveable {
-      public:
+    public:
         /**
          * @brief 构造函数，尝试获取共享读锁
          * @param[in] mutex 要尝试锁定的读写锁引用
          * @note 不会阻塞，立即返回
          */
         explicit TryReadGuard(std::shared_mutex& mutex)
-            : m_mutex(mutex), m_locked(m_mutex.try_lock_shared()) {}
+            : m_mutex(mutex),
+              m_locked(m_mutex.try_lock_shared()) {}
 
         /**
          * @brief 析构函数，自动释放已获取的锁(如果获取成功)
@@ -156,9 +158,9 @@ class ReadWriteLock {
             return m_locked;
         }
 
-      private:
-        std::shared_mutex& m_mutex;   ///< 关联的读写锁引用
-        bool               m_locked;  ///< 锁获取状态标志
+    private:
+        std::shared_mutex& m_mutex;  ///< 关联的读写锁引用
+        bool               m_locked; ///< 锁获取状态标志
     };
 
     /**
@@ -166,14 +168,15 @@ class ReadWriteLock {
      * @brief 尝试写锁守卫(RAII)，非阻塞获取独占锁
      */
     class TryWriteGuard : NoCopyable, NoMoveable {
-      public:
+    public:
         /**
          * @brief 构造函数，尝试获取独占写锁
          * @param[in] mutex 要尝试锁定的读写锁引用
          * @note 不会阻塞，立即返回
          */
         explicit TryWriteGuard(std::shared_mutex& mutex)
-            : m_mutex(mutex), m_locked(m_mutex.try_lock()) {}
+            : m_mutex(mutex),
+              m_locked(m_mutex.try_lock()) {}
 
         /**
          * @brief 析构函数，自动释放已获取的锁(如果获取成功)
@@ -194,9 +197,9 @@ class ReadWriteLock {
             return m_locked;
         }
 
-      private:
-        std::shared_mutex& m_mutex;   ///< 关联的读写锁引用
-        bool               m_locked;  ///< 锁获取状态标志
+    private:
+        std::shared_mutex& m_mutex;  ///< 关联的读写锁引用
+        bool               m_locked; ///< 锁获取状态标志
     };
 
     /**
@@ -287,9 +290,9 @@ class ReadWriteLock {
         return m_mutex.try_lock();
     }
 
-  private:
-    std::shared_mutex m_mutex;  ///< 底层共享互斥量对象
+private:
+    std::shared_mutex m_mutex; ///< 底层共享互斥量对象
 };
-}  // namespace zmuduo
+} // namespace zmuduo
 
 #endif

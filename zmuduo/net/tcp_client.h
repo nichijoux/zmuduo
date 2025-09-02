@@ -49,7 +49,7 @@ using ConnectorPtr = std::shared_ptr<Connector>;
  * @endcode
  */
 class TcpClient : NoCopyable {
-  public:
+public:
     /**
      * @brief 构造函数，初始化 TCP 客户端。
      * @param[in] loop 事件循环指针。
@@ -187,7 +187,7 @@ class TcpClient : NoCopyable {
      * @param[in] message 待发送的字符串消息。
      * @note 如果连接未建立，忽略发送操作。
      */
-    void send(const std::string& message) {
+    void send(const std::string& message) const {
         if (m_connected) {
             m_connection->send(message);
         }
@@ -198,7 +198,7 @@ class TcpClient : NoCopyable {
      * @param[in] buffer 待发送数据的缓冲区。
      * @note 如果连接未建立，忽略发送操作。
      */
-    void send(Buffer& buffer) {
+    void send(Buffer& buffer) const {
         if (m_connected) {
             m_connection->send(buffer);
         }
@@ -253,7 +253,7 @@ class TcpClient : NoCopyable {
         m_writeCompleteCallback = std::move(callback);
     }
 
-  private:
+private:
     /**
      * @brief 处理新连接。
      * @param[in] socketFD 新连接的 socket 文件描述符。
@@ -268,23 +268,23 @@ class TcpClient : NoCopyable {
      */
     void removeConnection(const TcpConnectionPtr& connection);
 
-  private:
-    static std::atomic<int64_t> S_NEXT_ID;                ///< 用于生成连接名称的计数器
-    EventLoop*                  m_eventLoop;              ///< 事件循环
-    ConnectorPtr                m_connector;              ///< 连接器
-    const std::string           m_name;                   ///< 客户端名称
-    bool                        m_retry;                  ///< 是否启用重试机制
-    bool                        m_connected;              ///< 是否已连接
-    ConnectionCallback          m_connectionCallback;     ///< 连接建立/断开回调
-    MessageCallback             m_messageCallback;        ///< 消息接收回调
-    WriteCompleteCallback       m_writeCompleteCallback;  ///< 写完成回调
-    std::mutex                  m_mutex;                  ///< 保护 m_connection 的互斥锁
-    TcpConnectionPtr            m_connection;             ///< 当前连接
+private:
+    static std::atomic<int64_t> S_NEXT_ID;               ///< 用于生成连接名称的计数器
+    EventLoop*                  m_eventLoop;             ///< 事件循环
+    ConnectorPtr                m_connector;             ///< 连接器
+    const std::string           m_name;                  ///< 客户端名称
+    bool                        m_retry     = false;     ///< 是否启用重试机制
+    bool                        m_connected = false;     ///< 是否已连接
+    ConnectionCallback          m_connectionCallback;    ///< 连接建立/断开回调
+    MessageCallback             m_messageCallback;       ///< 消息接收回调
+    WriteCompleteCallback       m_writeCompleteCallback; ///< 写完成回调
+    std::mutex                  m_mutex;                 ///< 保护 m_connection 的互斥锁
+    TcpConnectionPtr            m_connection = nullptr;  ///< 当前连接
 #ifdef ZMUDUO_ENABLE_OPENSSL
-    SSL_CTX*    m_sslContext;   ///< SSL 上下文
-    std::string m_sslHostname;  ///< SSL服务器主机名,用于SNI和证书验证
+    SSL_CTX*    m_sslContext = nullptr; ///< SSL 上下文
+    std::string m_sslHostname;          ///< SSL服务器主机名,用于SNI和证书验证
 #endif
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

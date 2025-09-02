@@ -33,7 +33,7 @@ namespace zmuduo::net {
  * @note 对于 8 位类型（uint8_t），直接返回原值，因为单字节无需转换。
  */
 template <class T>
-typename std::enable_if<sizeof(T) == sizeof(uint8_t), T>::type byteswap(T value) {
+std::enable_if_t<sizeof(T) == sizeof(uint8_t), T> byteswap(T value) {
     return value;
 }
 
@@ -45,8 +45,8 @@ typename std::enable_if<sizeof(T) == sizeof(uint8_t), T>::type byteswap(T value)
  * @note 使用 bswap_16 实现字节序翻转。
  */
 template <class T>
-typename std::enable_if<sizeof(T) == sizeof(uint16_t), T>::type byteswap(T value) {
-    return (T)bswap_16((uint16_t)value);
+std::enable_if_t<sizeof(T) == sizeof(uint16_t), T> byteswap(T value) {
+    return static_cast<T>(bswap_16(static_cast<uint16_t>(value)));
 }
 
 /**
@@ -57,8 +57,8 @@ typename std::enable_if<sizeof(T) == sizeof(uint16_t), T>::type byteswap(T value
  * @note 使用 bswap_32 实现字节序翻转。
  */
 template <class T>
-typename std::enable_if<sizeof(T) == sizeof(uint32_t), T>::type byteswap(T value) {
-    return (T)bswap_32((uint32_t)value);
+std::enable_if_t<sizeof(T) == sizeof(uint32_t), T> byteswap(T value) {
+    return static_cast<T>(bswap_32(static_cast<uint32_t>(value)));
 }
 
 /**
@@ -69,8 +69,8 @@ typename std::enable_if<sizeof(T) == sizeof(uint32_t), T>::type byteswap(T value
  * @note 使用 bswap_64 实现字节序翻转。
  */
 template <class T>
-typename std::enable_if<sizeof(T) == sizeof(uint64_t), T>::type byteswap(T value) {
-    return (T)bswap_64((uint64_t)value);
+std::enable_if_t<sizeof(T) == sizeof(uint64_t), T> byteswap(T value) {
+    return static_cast<T>(bswap_64(static_cast<uint64_t>(value)));
 }
 
 /**

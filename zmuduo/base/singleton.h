@@ -5,10 +5,9 @@
 #define ZMUDUO_BASE_SINGLETON_H
 
 namespace zmuduo {
-
 template <class T>
-class Singleton {
-  public:
+class Singleton final {
+public:
     static T& GetInstance() {
         static T v;
         return v;
@@ -17,11 +16,10 @@ class Singleton {
     Singleton(const Singleton&)            = delete;
     Singleton& operator=(const Singleton&) = delete;
 
-  protected:
-    Singleton()          = default;
-    virtual ~Singleton() = default;
+protected:
+    Singleton()  = default;
+    ~Singleton() = default;
 };
-
-}  // namespace zmuduo
+} // namespace zmuduo
 
 #endif

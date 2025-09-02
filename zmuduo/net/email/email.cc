@@ -17,7 +17,7 @@ EMailEntity::Ptr EMailEntity::CreateAttachment(const std::string& path) {
     // 定义一个缓冲区，用于存储读取的文件内容
     std::string buffer(1024, '\0');
     // 创建一个新的邮件实体指针
-    EMailEntity::Ptr entity(new EMailEntity());
+    auto entity = std::make_shared<EMailEntity>();
     // 循环读取文件内容，直到文件结束
     while (!ifs.eof()) {
         // 从文件中读取数据到缓冲区
@@ -51,7 +51,7 @@ EMail::Ptr EMail::Create(const std::string&              from_address,
                          const std::vector<std::string>& to_address,
                          const std::vector<std::string>& cc_address,
                          const std::vector<std::string>& bcc_address) {
-    EMail::Ptr email = std::make_shared<EMail>();
+    auto email = std::make_shared<EMail>();
     email->setFromEMailAddress(from_address);
     email->setFromEMailPassword(from_password);
     email->setTitle(title);
@@ -61,4 +61,4 @@ EMail::Ptr EMail::Create(const std::string&              from_address,
     email->setBccEMailAddress(bcc_address);
     return email;
 }
-}  // namespace zmuduo::net::email
+} // namespace zmuduo::net::email

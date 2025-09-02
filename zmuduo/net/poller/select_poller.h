@@ -29,13 +29,14 @@ namespace zmuduo::net {
  * loop.loop();
  * @endcode
  */
-class SelectPoller : public Poller {
-  public:
+class SelectPoller final : public Poller {
+public:
     /**
      * @brief 构造函数，初始化 SelectPoller。
      * @param[in] eventLoop 所属的事件循环。
      */
-    explicit SelectPoller(EventLoop* eventLoop) : Poller(eventLoop) {}
+    explicit SelectPoller(EventLoop* eventLoop)
+        : Poller(eventLoop) {}
 
     /**
      * @brief 析构函数，清理资源。
@@ -68,7 +69,7 @@ class SelectPoller : public Poller {
      */
     void removeChannel(Channel* channel) override;
 
-  private:
+private:
     /**
      * @typedef std::vector&lt;std::tuple&lt;int, uint32_t&gt;&gt;
      * @brief 文件描述符及其事件列表类型，存储 fd 和事件。
@@ -84,15 +85,15 @@ class SelectPoller : public Poller {
      * @param[in,out] exceptSet 异常文件描述符集合。
      * @note 根据 fd_set 的状态通知 Channel。
      */
-    void fillActiveChannels(int numEvents,
+    void fillActiveChannels(int          numEvents,
                             ChannelList* activeChannels,
-                            fd_set& readSet,
-                            fd_set& writeSet,
-                            fd_set& exceptSet) const;
+                            const fd_set&      readSet,
+                            const fd_set&      writeSet,
+                            const fd_set&      exceptSet) const;
 
-  private:
+private:
     SelectFdList m_selectFDs; ///< 存储文件描述符及其事件的列表
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

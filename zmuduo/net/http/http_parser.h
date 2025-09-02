@@ -37,14 +37,14 @@ namespace zmuduo::net::http {
  * @endcode
  */
 class HttpRequestParser : NoCopyable {
-  public:
+public:
     /**
      * @typedef std::shared_ptr&lt;HttpRequestParser&gt;
      * @brief HttpRequestParser 智能指针类型。
      */
     using Ptr = std::shared_ptr<HttpRequestParser>;
 
-  public:
+public:
     /**
      * @brief 构造函数，初始化解析器。
      * @note 初始化状态为 WAIT_HEAD，并设置回调函数。
@@ -81,16 +81,16 @@ class HttpRequestParser : NoCopyable {
         return m_error;
     }
 
-  private:
+private:
     /**
      * @enum State
      * @brief HTTP 请求解析状态。
      */
     enum class State {
-        WAIT_HEAD,  ///< 等待解析头部
-        WAIT_BODY,  ///< 等待解析消息体
-        FINISH,     ///< 解析完成
-        ERROR       ///< 解析出错
+        WAIT_HEAD, ///< 等待解析头部
+        WAIT_BODY, ///< 等待解析消息体
+        FINISH,    ///< 解析完成
+        ERROR      ///< 解析出错
     };
 
     /**
@@ -105,13 +105,13 @@ class HttpRequestParser : NoCopyable {
      */
     void handleWaitBodyState(Buffer& buffer);
 
-  private:
-    State       m_state;       ///< 当前解析状态
-    std::string m_error;       ///< 解析错误信息
-    http_parser m_parser;      ///< 底层 HTTP 解析器
-    HttpRequest m_request;     ///< 解析后的请求对象
-    Buffer      m_buffer;      ///< 内部缓冲区
-    size_t      m_dataLength;  ///< 剩余待解析的消息体长度
+private:
+    State       m_state;      ///< 当前解析状态
+    std::string m_error;      ///< 解析错误信息
+    http_parser m_parser;     ///< 底层 HTTP 解析器
+    HttpRequest m_request;    ///< 解析后的请求对象
+    Buffer      m_buffer;     ///< 内部缓冲区
+    size_t      m_dataLength; ///< 剩余待解析的消息体长度
 };
 
 /**
@@ -141,14 +141,14 @@ class HttpRequestParser : NoCopyable {
  * @endcode
  */
 class HttpResponseParser : NoCopyable {
-  public:
+public:
     /**
      * @typedef std::unique_ptr&lt;HttpResponseParser&gt;
      * @brief HttpResponseParser 智能指针类型。
      */
     using Ptr = std::unique_ptr<HttpResponseParser>;
 
-  public:
+public:
     /**
      * @brief 构造函数，初始化解析器。
      * @note 初始化状态为 WAIT_HEAD，并设置回调函数。
@@ -203,19 +203,19 @@ class HttpResponseParser : NoCopyable {
         return m_error;
     }
 
-  private:
+private:
     /**
      * @enum State
      * @brief HTTP 响应解析状态。
      */
     enum class State {
-        WAIT_HEAD,          ///< 等待解析头部
-        WAIT_BODY,          ///< 等待解析消息体
-        NO_CONTENT_LENGTH,  ///< 无 Content-Length
-        CONTENT_LENGTH,     ///< 有 Content-Length
-        CHUNKED_ENCODING,   ///< chunked 编码
-        FINISH,             ///< 解析完成
-        ERROR               ///< 解析出错
+        WAIT_HEAD,         ///< 等待解析头部
+        WAIT_BODY,         ///< 等待解析消息体
+        NO_CONTENT_LENGTH, ///< 无 Content-Length
+        CONTENT_LENGTH,    ///< 有 Content-Length
+        CHUNKED_ENCODING,  ///< chunked 编码
+        FINISH,            ///< 解析完成
+        ERROR              ///< 解析出错
     };
 
     /**
@@ -256,14 +256,14 @@ class HttpResponseParser : NoCopyable {
         m_state = State::ERROR;
     }
 
-  private:
-    State             m_state;       ///< 当前解析状态
-    std::string       m_error;       ///< 解析错误信息
-    httpclient_parser m_parser;      ///< 底层 HTTP 客户端解析器
-    HttpResponse      m_response;    ///< 解析后的响应对象
-    Buffer            m_buffer;      ///< 内部缓冲区
-    size_t            m_dataLength;  ///< 剩余待解析的消息体长度
+private:
+    State             m_state;      ///< 当前解析状态
+    std::string       m_error;      ///< 解析错误信息
+    httpclient_parser m_parser;     ///< 底层 HTTP 客户端解析器
+    HttpResponse      m_response;   ///< 解析后的响应对象
+    Buffer            m_buffer;     ///< 内部缓冲区
+    size_t            m_dataLength; ///< 剩余待解析的消息体长度
 };
-}  // namespace zmuduo::net::http
+} // namespace zmuduo::net::http
 
 #endif

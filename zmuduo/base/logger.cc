@@ -21,7 +21,7 @@ struct SignalInternal {
 static SignalInternal s_signal_internal;
 
 // LogLevel
-std::string LogLevel::ToString(LogLevel::Level level) {
+std::string LogLevel::ToString(const Level level) {
     switch (level) {
 #define CONVERT(level)                                                                             \
     case LogLevel::Level::level: return #level
@@ -61,11 +61,11 @@ LogLevel::Level LogLevel::FromString(const std::string& s) {
     CONVERT(FATAL, FATAL)
 #undef CONVERT
 
-    return LogLevel::Level::DEBUG;
+    return DEBUG;
 }
 
 // LogMode
-std::string LogMode::ToString(LogMode::Mode mode) {
+std::string LogMode::ToString(const Mode mode) {
     switch (mode) {
 #define CONVERT(mode)                                                                              \
     case LogMode::Mode::mode: return #mode
@@ -87,14 +87,14 @@ LogMode::Mode LogMode::FromString(const std::string& s) {
     CONVERT(BOTH, BOTH)
 #undef CONVERT
 
-    return LogMode::Mode::STDOUT;
+    return STDOUT;
 }
 
-LogMessage::LogMessage(LogLevel::Level level,
-                       std::string     content,
-                       std::string     file,
-                       int             line,
-                       std::string     func)
+LogMessage::LogMessage(const LogLevel::Level level,
+                       std::string           content,
+                       std::string           file,
+                       const int             line,
+                       std::string           func)
     : m_level(level),
       m_content(std::move(content)),
       m_timestamp(Timestamp::Now()),
@@ -105,15 +105,7 @@ LogMessage::LogMessage(LogLevel::Level level,
       m_function(std::move(func)) {}
 
 AsyncLogger::AsyncLogger()
-    : m_stop(false),
-      m_minLevel(LogLevel::DEBUG),
-      m_mode(LogMode::STDOUT),
-      m_logFilePath("./"),
-      m_maxFileSize(100 * 1024 * 1024),
-      m_currentFileSize(0),
-      m_fileIndex(0),
-      m_enableColor(true),
-      m_workerThread([this]() { processLogs(); }) {
+    : m_workerThread([this] { processLogs(); }) {
     m_workerThread.start();
 }
 
@@ -133,11 +125,11 @@ AsyncLogger& AsyncLogger::GetInstance() {
     return logger;
 }
 
-void AsyncLogger::reset(LogLevel::Level    level,
-                        LogMode::Mode      mode,
-                        const std::string& filepath,
-                        size_t             maxFileSize,
-                        bool               enableColor) {
+void AsyncLogger::reset(const LogLevel::Level level,
+                        const LogMode::Mode   mode,
+                        const std::string&    filepath,
+                        const size_t          maxFileSize,
+                        const bool            enableColor) {
     // 最小记录级别
     m_minLevel = level;
     // 记录模式
@@ -166,30 +158,30 @@ void AsyncLogger::reset(LogLevel::Level    level,
     }
 }
 
-void AsyncLogger::log(LogLevel::Level    level,
-                      const std::string& message,
-                      const std::string& filename,
-                      int                line,
-                      const std::string& function) {
+void AsyncLogger::log(const LogLevel::Level level,
+                      const std::string&    message,
+                      const std::string&    filename,
+                      const int             line,
+                      const std::string&    function) {
     // 日记级别分裂
     if (level < m_minLevel) {
         return;
     }
     // 创建日志信息
-    LogMessage logMessage(level, message, filename, line, function);
     // 放入队列中准备打印
     {
-        std::lock_guard<std::mutex> lock(m_queueMutex);
+        LogMessage      logMessage(level, message, filename, line, function);
+        std::lock_guard lock(m_queueMutex);
         m_logQueue.emplace(std::move(logMessage));
     }
     m_condition.notify_one();
 }
 
-void AsyncLogger::logFormat(LogLevel::Level    level,
-                            const std::string& filename,
-                            int                line,
-                            const std::string& function,
-                            const char*        format,
+void AsyncLogger::logFormat(const LogLevel::Level level,
+                            const std::string&    filename,
+                            const int             line,
+                            const std::string&    function,
+                            const char*           format,
                             ...) {
     if (level < m_minLevel) {
         return;
@@ -198,15 +190,14 @@ void AsyncLogger::logFormat(LogLevel::Level    level,
     va_list args;
     va_start(args, format);
     char* buffer = nullptr;
-    auto  size   = vasprintf(&buffer, format, args);
-    if (size != -1) {
+    if (const auto size = vasprintf(&buffer, format, args); size != -1) {
         log(level, std::string(buffer, size), filename, line, function);
         free(buffer);
     }
     va_end(args);
 }
 
-std::string AsyncLogger::GetLevelColor(LogLevel::Level level) {
+std::string AsyncLogger::GetLevelColor(const LogLevel::Level level) {
     switch (level) {
         case LogLevel::Level::DEBUG: return color::CYAN;
         case LogLevel::Level::INFO: return color::BLUE;
@@ -218,7 +209,7 @@ std::string AsyncLogger::GetLevelColor(LogLevel::Level level) {
     }
 }
 
-std::string AsyncLogger::FormatMessage(const LogMessage& message, bool useColor) {
+std::string AsyncLogger::FormatMessage(const LogMessage& message, const bool useColor) {
     std::ostringstream oss;
 
     if (useColor) {
@@ -245,7 +236,7 @@ void AsyncLogger::openLogFile() {
     // 获取文件名
     std::stringstream ss;
     ss << m_logFilePath << Date::Now() << m_fileIndex << ".log";
-    std::string filename = ss.str();
+    const std::string filename = ss.str();
     // 追加方式打开文件
     m_fileStream.open(filename, std::ios::app);
     if (!m_fileStream.is_open()) {
@@ -267,7 +258,7 @@ void AsyncLogger::checkFileRotation() {
 
 void AsyncLogger::processLogs() {
     while (!m_stop) {
-        std::unique_lock<std::mutex> lock(m_queueMutex);
+        std::unique_lock lock(m_queueMutex);
         m_condition.wait(lock, [this] { return !m_logQueue.empty() || m_stop; });
         // 获取队列内容
         while (!m_logQueue.empty()) {
@@ -305,7 +296,10 @@ void AsyncLogger::processLogs() {
     }
 }
 
-LogStream::LogStream(LogLevel::Level level, std::string filename, int line, std::string function)
+LogStream::LogStream(LogLevel::Level level,
+                     std::string     filename,
+                     const int       line,
+                     std::string     function)
     : m_level(level),
       m_filename(std::move(filename)),
       m_line(line),
@@ -314,5 +308,4 @@ LogStream::LogStream(LogLevel::Level level, std::string filename, int line, std:
 LogStream::~LogStream() {
     AsyncLogger::GetInstance().log(m_level, m_oss.str(), m_filename, m_line, m_function);
 }
-
-}  // namespace zmuduo
+} // namespace zmuduo

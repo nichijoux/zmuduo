@@ -36,7 +36,7 @@ WSCloseCode CharsToWSCloseCode(const char* s) {
  */
 void handleWSFramePing(const TcpConnectionPtr& connection,
                        const WSFrameMessage&   message,
-                       bool                    isFromClient) {
+                       const bool              isFromClient) {
     assert(message.m_opcode == WSFrameHead::PING);
     connection->send(WSFrameMessage(WSFrameHead::PONG, message.m_payload).serialize(!isFromClient));
 }
@@ -65,7 +65,7 @@ void handleWSFramePong() {
  */
 void handleWSFrameClose(const TcpConnectionPtr& connection,
                         const WSFrameMessage&   message,
-                        bool                    isFromClient) {
+                        const bool              isFromClient) {
     assert(message.m_opcode == WSFrameHead::CLOSE);
     // 提取前两个字节作为状态码（网络字节序）
     uint16_t statusCode;
@@ -81,22 +81,26 @@ void handleWSFrameClose(const TcpConnectionPtr& connection,
 
 void handleWSFrameControl(const TcpConnectionPtr& connection,
                           const WSFrameMessage&   message,
-                          bool                    isFromClient) {
+                          const bool              isFromClient) {
     // 确保处理的是控制帧而不是数据帧
     assert(message.isControlFrame());
     // 根据帧类型分发处理逻辑
     switch (message.m_opcode) {
-        case WSFrameHead::PING: handleWSFramePing(connection, message, isFromClient); break;
-        case WSFrameHead::PONG: handleWSFramePong(); break;
-        case WSFrameHead::CLOSE: handleWSFrameClose(connection, message, isFromClient); break;
+        case WSFrameHead::PING: handleWSFramePing(connection, message, isFromClient);
+            break;
+        case WSFrameHead::PONG: handleWSFramePong();
+            break;
+        case WSFrameHead::CLOSE: handleWSFrameClose(connection, message, isFromClient);
+            break;
+        default: break;
     }
 }
 
 std::string WSFrameHead::toString() const {
     std::stringstream ss;
     ss << "[WSFrameHead fin = " << fin << " rsv1 = " << rsv1 << " rsv2 = " << rsv2
-       << " rsv3 = " << rsv3 << " opcode = " << opcode << " mask = " << mask
-       << " payload = " << payloadLength << "]";
+        << " rsv3 = " << rsv3 << " opcode = " << opcode << " mask = " << mask
+        << " payload = " << payloadLength << "]";
     return ss.str();
 }
 
@@ -106,13 +110,13 @@ WSFrameMessage WSFrameMessage::MakeCloseFrame(WSCloseCode statusCode, const std:
     data.reserve(2 + reason.size());
     // 状态码
     data.push_back(static_cast<char>((static_cast<uint16_t>(statusCode) >> 8) & 0xFF));
-    data.push_back(static_cast<char>((static_cast<uint16_t>(statusCode) & 0xFF)));
+    data.push_back(static_cast<char>(static_cast<uint16_t>(statusCode) & 0xFF));
     // 原因
     data.append(reason);
     return WSFrameMessage(WSFrameHead::CLOSE, std::move(data));
 }
 
-std::string WSFrameMessage::serialize(bool isClient) const {
+std::string WSFrameMessage::serialize(const bool isClient) const {
     Buffer buffer;
     // 初始化消息头
     WSFrameHead head{};
@@ -121,7 +125,7 @@ std::string WSFrameMessage::serialize(bool isClient) const {
     head.opcode = m_opcode;
     head.mask   = isClient;
     // 长度设置
-    size_t size = m_payload.size();
+    const size_t size = m_payload.size();
     if (size < 126) {
         head.payloadLength = size;
     } else if (size < 65536) {
@@ -142,13 +146,13 @@ std::string WSFrameMessage::serialize(bool isClient) const {
         len          = byteSwapOnLittleEndian(len);
         buffer.write(&len, sizeof(len));
     } else if (head.payloadLength == 127) {
-        uint64_t len = byteSwapOnLittleEndian(size);
+        const uint64_t len = byteSwapOnLittleEndian(size);
         buffer.write(&len, sizeof(len));
     }
     auto data = m_payload;
     // 写入mask
     if (head.mask) {
-        auto maskKey = RandomString(4);
+        const auto maskKey = RandomString(4);
         buffer.write(maskKey);
         for (size_t i = 0; i < data.size(); ++i) {
             data[i] ^= maskKey[i % maskKey.size()];
@@ -158,4 +162,4 @@ std::string WSFrameMessage::serialize(bool isClient) const {
     buffer.write(data);
     return buffer.retrieveAllAsString();
 }
-}  // namespace zmuduo::net::http::ws
+} // namespace zmuduo::net::http::ws

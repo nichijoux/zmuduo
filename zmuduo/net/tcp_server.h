@@ -47,7 +47,7 @@ namespace zmuduo::net {
  * @endcode
  */
 class TcpServer : NoCopyable {
-  public:
+public:
     /**
      * @typedef std::function&lt;void(EventLoop*)&gt;
      * @brief 定义线程初始化回调函数类型，用于配置子事件循环。
@@ -59,7 +59,7 @@ class TcpServer : NoCopyable {
      */
     using ConnectionMap = std::unordered_map<std::string, TcpConnectionPtr>;
 
-  public:
+public:
     /**
      * @brief 构造函数，初始化 TCP 服务器。
      * @param[in] loop 主事件循环。
@@ -83,7 +83,7 @@ class TcpServer : NoCopyable {
      * @param[in] num 线程数量（非负整数）。
      * @throw 如果 num 小于 0，抛出断言错误。
      */
-    void setThreadNum(int num);
+    void setThreadNum(int num) const;
 
     /**
      * @brief 设置连接建立/断开的回调函数。
@@ -195,7 +195,7 @@ class TcpServer : NoCopyable {
         return m_threadPool;
     }
 
-  private:
+private:
     /**
      * @brief 处理新连接。
      * @param[in] socketFD 新连接的 socket 文件描述符。
@@ -218,23 +218,23 @@ class TcpServer : NoCopyable {
      */
     void removeConnectionInLoop(const TcpConnectionPtr& connection);
 
-  private:
-    EventLoop*                m_eventLoop;              ///< 主事件循环
-    const std::string         m_ipPort;                 ///< 监听地址的 IP 和端口
-    const std::string         m_name;                   ///< 服务器名称
-    std::unique_ptr<Acceptor> m_acceptor;               ///< 监听新连接的 Acceptor
-    EventLoopThreadPool::Ptr  m_threadPool;             ///< 事件循环线程池
-    ConnectionCallback        m_connectionCallback;     ///< 连接建立/断开回调
-    MessageCallback           m_messageCallback;        ///< 消息接收回调
-    WriteCompleteCallback     m_writeCompleteCallback;  ///< 写完成回调
-    ThreadInitCallback        m_threadInitCallback;     ///< 线程初始化回调
-    std::atomic<bool>         m_started;                ///< 服务器是否已启动
-    ConnectionMap             m_connections;            ///< 连接名称到 TcpConnection 的映射
-    std::atomic<uint64_t>     m_nextConnectId;          ///< 下一个连接的 ID
+private:
+    EventLoop*                m_eventLoop;             ///< 主事件循环
+    const std::string         m_ipPort;                ///< 监听地址的 IP 和端口
+    const std::string         m_name;                  ///< 服务器名称
+    std::unique_ptr<Acceptor> m_acceptor;              ///< 监听新连接的 Acceptor
+    EventLoopThreadPool::Ptr  m_threadPool;            ///< 事件循环线程池
+    ConnectionCallback        m_connectionCallback;    ///< 连接建立/断开回调
+    MessageCallback           m_messageCallback;       ///< 消息接收回调
+    WriteCompleteCallback     m_writeCompleteCallback; ///< 写完成回调
+    ThreadInitCallback        m_threadInitCallback;    ///< 线程初始化回调
+    std::atomic<bool>         m_started = false;       ///< 服务器是否已启动
+    ConnectionMap             m_connections;           ///< 连接名称到 TcpConnection 的映射
+    std::atomic<uint64_t>     m_nextConnectId = 0;     ///< 下一个连接的 ID
 #ifdef ZMUDUO_ENABLE_OPENSSL
-    SSL_CTX* m_sslContext;  ///< SSL 上下文
+    SSL_CTX* m_sslContext = nullptr; ///< SSL 上下文
 #endif
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

@@ -2,15 +2,14 @@
 #include <fnmatch.h>
 
 namespace zmuduo::net::http {
-
 ServletDispatcher::ServletDispatcher()
     : m_default(std::make_shared<NotFoundServlet>("NotFoundServlet")) {}
 
-void ServletDispatcher::handle(HttpRequest& request, HttpResponse& response) {
+void ServletDispatcher::handle(HttpRequest& request, HttpResponse& response) const {
     // 1. 执行路径匹配的拦截器
     for (const auto& interceptor : m_interceptors) {
         if (!interceptor->intercept(request, response)) {
-            return;  // 被拦截，终止处理
+            return; // 被拦截，终止处理
         }
     }
     // 2. 执行过滤器 beforeHandle（可修改 request）
@@ -18,8 +17,7 @@ void ServletDispatcher::handle(HttpRequest& request, HttpResponse& response) {
         filter->beforeHandle(request);
     }
     // 3. 分发请求给 Servlet
-    auto servlet = getMatchedServlet(request.getPath(), request.getMethod());
-    if (servlet) {
+    if (const auto servlet = getMatchedServlet(request.getPath(), request.getMethod())) {
         servlet->handle(request, response);
     }
     // 4. 执行过滤器 afterHandle（可修改 response）
@@ -32,14 +30,14 @@ const Servlet::Ptr& ServletDispatcher::getMatchedServlet(const std::string& path
                                                          HttpMethod         method) const {
     // 1. 首先尝试精确匹配
     // 先查找指定了方法的
-    ServletKey keyWithMethod(path, method);
-    auto       exactIt = m_exactServlets.find(keyWithMethod);
+    const ServletKey keyWithMethod(path, method);
+    auto             exactIt = m_exactServlets.find(keyWithMethod);
     if (exactIt != m_exactServlets.end()) {
         return exactIt->second;
     }
 
     // 再查找不指定方法的
-    ServletKey keyWithoutMethod(path);
+    const ServletKey keyWithoutMethod(path);
     exactIt = m_exactServlets.find(keyWithoutMethod);
     if (exactIt != m_exactServlets.end()) {
         return exactIt->second;
@@ -48,8 +46,8 @@ const Servlet::Ptr& ServletDispatcher::getMatchedServlet(const std::string& path
     // 2. 尝试通配符匹配
     for (const auto& [key, servlet] : m_wildcardServlets) {
         // 如果key指定了method，则必须匹配；如果没指定，则忽略method检查
-        bool methodMatch = !key.method().has_value() || (*key.method() == method);
-        if (methodMatch && fnmatch(key.url().c_str(), path.c_str(), 0) == 0) {
+        if (const bool methodMatch = !key.method().has_value() || *key.method() == method;
+            methodMatch && fnmatch(key.url().c_str(), path.c_str(), 0) == 0) {
             return servlet;
         }
     }
@@ -81,8 +79,8 @@ bool ServletDispatcher::deleteExactServlet(const ServletKey& key) {
 }
 
 bool ServletDispatcher::deleteWildcardServlet(const ServletKey& key) {
-    auto it = std::find_if(m_wildcardServlets.begin(), m_wildcardServlets.end(),
-                           [&](const auto& pair) { return pair.first == key; });
+    const auto it = std::find_if(m_wildcardServlets.begin(), m_wildcardServlets.end(),
+                                 [&](const auto& pair) { return pair.first == key; });
     if (it != m_wildcardServlets.end()) {
         m_wildcardServlets.erase(it);
         return true;
@@ -91,10 +89,10 @@ bool ServletDispatcher::deleteWildcardServlet(const ServletKey& key) {
 }
 
 void ServletDispatcher::addInterceptor(HttpInterceptor::Ptr interceptor) {
-    auto it = std::find_if(m_interceptors.begin(), m_interceptors.end(),
-                           [&interceptor](const HttpInterceptor::Ptr& existingInterceptor) {
-                               return existingInterceptor->getId() == interceptor->getId();
-                           });
+    const auto it = std::find_if(m_interceptors.begin(), m_interceptors.end(),
+                                 [&interceptor](const HttpInterceptor::Ptr& existingInterceptor) {
+                                     return existingInterceptor->getId() == interceptor->getId();
+                                 });
 
     if (it != m_interceptors.end()) {
         // 如果找到具有相同 id 的拦截器，替换它
@@ -106,10 +104,10 @@ void ServletDispatcher::addInterceptor(HttpInterceptor::Ptr interceptor) {
 }
 
 bool ServletDispatcher::deleteInterceptor(const HttpInterceptor::Ptr& interceptor) {
-    auto it = std::find_if(m_interceptors.begin(), m_interceptors.end(),
-                           [&interceptor](const HttpInterceptor::Ptr& existingInterceptor) {
-                               return existingInterceptor->getId() == interceptor->getId();
-                           });
+    const auto it = std::find_if(m_interceptors.begin(), m_interceptors.end(),
+                                 [&interceptor](const HttpInterceptor::Ptr& existingInterceptor) {
+                                     return existingInterceptor->getId() == interceptor->getId();
+                                 });
     if (it != m_interceptors.end()) {
         m_interceptors.erase(it);
         return true;
@@ -118,7 +116,7 @@ bool ServletDispatcher::deleteInterceptor(const HttpInterceptor::Ptr& intercepto
 }
 
 bool ServletDispatcher::deleteInterceptor(const std::string& id) {
-    auto it = std::find_if(
+    const auto it = std::find_if(
         m_interceptors.begin(), m_interceptors.end(),
         [&id](const HttpInterceptor::Ptr& interceptor) { return interceptor->getId() == id; });
     if (it != m_interceptors.end()) {
@@ -129,10 +127,10 @@ bool ServletDispatcher::deleteInterceptor(const std::string& id) {
 }
 
 void ServletDispatcher::addFilter(HttpFilter::Ptr filter) {
-    auto it = std::find_if(m_filters.begin(), m_filters.end(),
-                           [&filter](const HttpFilter::Ptr& existingFilter) {
-                               return existingFilter->getId() == filter->getId();
-                           });
+    const auto it = std::find_if(m_filters.begin(), m_filters.end(),
+                                 [&filter](const HttpFilter::Ptr& existingFilter) {
+                                     return existingFilter->getId() == filter->getId();
+                                 });
 
     if (it != m_filters.end()) {
         // 如果找到具有相同 id 的拦截器，替换它
@@ -144,10 +142,10 @@ void ServletDispatcher::addFilter(HttpFilter::Ptr filter) {
 }
 
 bool ServletDispatcher::deleteFilter(const HttpFilter::Ptr& filter) {
-    auto it = std::find_if(m_filters.begin(), m_filters.end(),
-                           [&filter](const HttpFilter::Ptr& existingFilter) {
-                               return existingFilter->getId() == filter->getId();
-                           });
+    const auto it = std::find_if(m_filters.begin(), m_filters.end(),
+                                 [&filter](const HttpFilter::Ptr& existingFilter) {
+                                     return existingFilter->getId() == filter->getId();
+                                 });
     if (it != m_filters.end()) {
         m_filters.erase(it);
         return true;
@@ -156,13 +154,14 @@ bool ServletDispatcher::deleteFilter(const HttpFilter::Ptr& filter) {
 }
 
 bool ServletDispatcher::deleteFilter(const std::string& id) {
-    auto it = std::find_if(m_filters.begin(), m_filters.end(),
-                           [&id](const HttpFilter::Ptr& filter) { return filter->getId() == id; });
+    const auto it = std::find_if(m_filters.begin(), m_filters.end(),
+                                 [&id](const HttpFilter::Ptr& filter) {
+                                     return filter->getId() == id;
+                                 });
     if (it != m_filters.end()) {
         m_filters.erase(it);
         return true;
     }
     return false;
 }
-
-}  // namespace zmuduo::net::http
+} // namespace zmuduo::net::http

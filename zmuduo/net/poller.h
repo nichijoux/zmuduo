@@ -34,7 +34,7 @@ class EventLoop;
  * @endcode
  */
 class Poller : NoCopyable {
-  public:
+public:
     /**
      * @typedef std::vector&lt;Channel*&gt;
      * @brief 定义活跃 Channel 列表类型，用于存储触发事件的 Channel 指针。
@@ -50,12 +50,13 @@ class Poller : NoCopyable {
      */
     static Poller* newPoller(EventLoop* loop);
 
-  public:
+public:
     /**
      * @brief 构造函数，初始化 Poller 实例。
      * @param[in] eventLoop 所属的事件循环指针。
      */
-    explicit Poller(EventLoop* eventLoop) : m_ownerLoop(eventLoop) {}
+    explicit Poller(EventLoop* eventLoop)
+        : m_ownerLoop(eventLoop) {}
 
     /**
      * @brief 虚析构函数，确保派生类正确清理资源。
@@ -90,9 +91,9 @@ class Poller : NoCopyable {
      * @param[in] channel 需要检查的 Channel 指针。
      * @return 如果 Channel 由当前 Poller 管理，返回 true；否则返回 false。
      */
-    bool hasChannel(Channel* channel) const;
+    bool hasChannel(const Channel* channel) const;
 
-  protected:
+protected:
     /**
      * @brief 文件描述符到 Channel 的映射。
      * @note 用于存储当前 Poller 管理的所有 Channel，以文件描述符为键。
@@ -103,12 +104,12 @@ class Poller : NoCopyable {
      * @brief 断言当前线程为事件循环所属线程。
      * @throw 如果当前线程不是事件循环所属线程，抛出致命日志错误。
      */
-    void assertInLoopThread();
+    void assertInLoopThread() const;
 
-    ChannelMap m_channels;  ///< 文件描述符到 Channel 的映射
-  private:
-    EventLoop* m_ownerLoop;  ///< 所属的事件循环
+    ChannelMap m_channels; ///< 文件描述符到 Channel 的映射
+private:
+    EventLoop* m_ownerLoop; ///< 所属的事件循环
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

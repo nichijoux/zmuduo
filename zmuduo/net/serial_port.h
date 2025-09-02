@@ -6,7 +6,6 @@
 #include "zmuduo/net/buffer.h"
 #include "zmuduo/net/event_loop.h"
 #include <termios.h>
-#include <vector>
 
 namespace zmuduo::net {
 /**
@@ -22,29 +21,29 @@ struct SerialConfig {
      * @brief 波特率枚举
      */
     enum BaudRate {
-        B_0       = B0,
-        B_50      = B50,
-        B_75      = B75,
-        B_110     = B110,
-        B_134     = B134,
-        B_150     = B150,
-        B_200     = B200,
-        B_300     = B300,
-        B_600     = B600,
-        B_1200    = B1200,
-        B_1800    = B1800,
-        B_2400    = B2400,
-        B_4800    = B4800,
-        B_9600    = B9600,
-        B_19200   = B19200,
-        B_38400   = B38400,
-        B_57600   = B57600,
-        B_115200  = B115200,
-        B_230400  = B230400,
-        B_460800  = B460800,
-        B_500000  = B500000,
-        B_576000  = B576000,
-        B_921600  = B921600,
+        B_0 = B0,
+        B_50 = B50,
+        B_75 = B75,
+        B_110 = B110,
+        B_134 = B134,
+        B_150 = B150,
+        B_200 = B200,
+        B_300 = B300,
+        B_600 = B600,
+        B_1200 = B1200,
+        B_1800 = B1800,
+        B_2400 = B2400,
+        B_4800 = B4800,
+        B_9600 = B9600,
+        B_19200 = B19200,
+        B_38400 = B38400,
+        B_57600 = B57600,
+        B_115200 = B115200,
+        B_230400 = B230400,
+        B_460800 = B460800,
+        B_500000 = B500000,
+        B_576000 = B576000,
+        B_921600 = B921600,
         B_1000000 = B1000000,
         B_1152000 = B1152000,
         B_1500000 = B1500000,
@@ -70,10 +69,10 @@ struct SerialConfig {
      */
     enum DataBits { DB_5 = 5, DB_6 = 6, DB_7 = 7, DB_8 = 8 };
 
-    BaudRate baudRate = B_115200;  ///< 波特率，默认 115200
-    StopBits stopBits = ONE;       ///< 停止位，默认 1
-    Parity   parity   = NONE;      ///< 校验位，默认无校验
-    DataBits dataBits = DB_8;      ///< 数据位，默认 8
+    BaudRate baudRate = B_115200; ///< 波特率，默认 115200
+    StopBits stopBits = ONE;      ///< 停止位，默认 1
+    Parity   parity   = NONE;     ///< 校验位，默认无校验
+    DataBits dataBits = DB_8;     ///< 数据位，默认 8
 };
 
 /**
@@ -107,7 +106,7 @@ struct SerialConfig {
  * @endcode
  */
 class SerialPort : NoCopyable {
-  public:
+public:
     /**
      * @typedef std::function&lt;void(bool opened)&gt;
      * @brief 串口打开/关闭回调
@@ -122,7 +121,7 @@ class SerialPort : NoCopyable {
      */
     using MessageCallback = std::function<void(SerialPort& serialPort, Buffer& inBuffer)>;
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in,out] loop 所属事件循环。
@@ -206,7 +205,7 @@ class SerialPort : NoCopyable {
         m_messageCallback = std::move(callback);
     }
 
-  private:
+private:
     /**
      * @brief 应用串口配置。
      * @note 配置 termios 参数（波特率、数据位、停止位、校验位），设置原始模式。
@@ -235,7 +234,7 @@ class SerialPort : NoCopyable {
      * @brief 处理错误事件。
      * @note 记录错误日志（SO_ERROR）。
      */
-    void handleError();
+    void handleError() const;
 
     /**
      * @brief 在事件循环中发送数据。
@@ -245,18 +244,18 @@ class SerialPort : NoCopyable {
      */
     void sendInLoop(const void* data, size_t length);
 
-  private:
-    EventLoop*               m_eventLoop;        ///< 事件循环
-    int                      m_fd;               ///< 串口文件描述符
-    std::string              m_portName;         ///< 串口设备路径
-    SerialConfig             m_config;           ///< 串口配置
-    bool                     m_opened;           ///< 串口打开状态
-    std::unique_ptr<Channel> m_channel;          ///< 事件通道
-    Buffer                   m_inputBuffer;      ///< 输入缓冲区
-    Buffer                   m_outputBuffer;     ///< 输出缓冲区
-    OpenedCallback           m_openedCallback;   ///< 打开/关闭回调
-    MessageCallback          m_messageCallback;  ///< 消息回调
+private:
+    EventLoop*               m_eventLoop;       ///< 事件循环
+    int                      m_fd = -1;         ///< 串口文件描述符
+    std::string              m_portName;        ///< 串口设备路径
+    SerialConfig             m_config;          ///< 串口配置
+    bool                     m_opened = false;  ///< 串口打开状态
+    std::unique_ptr<Channel> m_channel;         ///< 事件通道
+    Buffer                   m_inputBuffer;     ///< 输入缓冲区
+    Buffer                   m_outputBuffer;    ///< 输出缓冲区
+    OpenedCallback           m_openedCallback;  ///< 打开/关闭回调
+    MessageCallback          m_messageCallback; ///< 消息回调
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

@@ -11,7 +11,7 @@ using namespace zmuduo::utils::string_util;
 
 namespace zmuduo::net::http::ws {
 WSServer::WSServer(EventLoop* loop, const Address::Ptr& listenAddress, const std::string& name)
-    : m_server(loop, listenAddress, name), m_dispatcher(), m_connections() {
+    : m_server(loop, listenAddress, name) {
     m_server.setConnectionCallback(
         [this](const TcpConnectionPtr& connection) { onConnection(connection); });
     m_server.setMessageCallback(
@@ -29,7 +29,7 @@ void WSServer::start() {
 void WSServer::onConnection(const TcpConnectionPtr& connection) {
     if (connection->isConnected()) {
         ZMUDUO_LOG_DEBUG << "[WSServer] Connection UP : "
-                         << connection->getPeerAddress()->toString();
+            << connection->getPeerAddress()->toString();
         TcpConnection* it = connection.get();
         if (m_connections.find(it) != m_connections.end()) {
             ZMUDUO_LOG_ERROR << "something error, [" << it->getName() << "] exist";
@@ -40,7 +40,7 @@ void WSServer::onConnection(const TcpConnectionPtr& connection) {
         connection->setContext(std::make_shared<HttpContext>());
     } else {
         ZMUDUO_LOG_DEBUG << "[WSServer] Connection DOWN : "
-                         << connection->getPeerAddress()->toString();
+            << connection->getPeerAddress()->toString();
         TcpConnection* it = connection.get();
         m_connections.erase(it);
     }
@@ -54,11 +54,9 @@ void WSServer::onMessage(const TcpConnectionPtr& connection,
         ZMUDUO_LOG_ERROR << "something error, [" << it->getName() << "] not exist";
         return;
     }
-    State state = std::get<0>(m_connections[it]);
-    if (state == State::TCP) {
-        auto context     = std::any_cast<HttpContext::Ptr>(connection->getContext());
-        auto parseStatus = context->parseRequest(buffer);
-        if (parseStatus == -1) {
+    if (auto state = std::get<State>(m_connections[it]); state == State::TCP) {
+        auto context = std::any_cast<HttpContext::Ptr>(connection->getContext());
+        if (const auto parseStatus = context->parseRequest(buffer); parseStatus == -1) {
             connection->send("HTTP/1.1 400 Bad Request\r\n\r\n");
             connection->shutdown();
         } else if (parseStatus == 1) {
@@ -69,13 +67,13 @@ void WSServer::onMessage(const TcpConnectionPtr& connection,
         onWSCommunication(connection, buffer);
     } else {
         ZMUDUO_LOG_ERROR << "[" << it->getName()
-                         << "] state error, state = " << static_cast<int>(state);
+            << "] state error, state = " << static_cast<int>(state);
         connection->forceClose();
     }
 }
 
 void WSServer::httpHandShake(const TcpConnectionPtr& connection, const HttpRequest& request) {
-    auto context = std::any_cast<HttpContext::Ptr>(connection->getContext());
+    const auto context = std::any_cast<HttpContext::Ptr>(connection->getContext());
 
     TcpConnection* it = connection.get();
     // connection 必须为Upgrade
@@ -91,7 +89,7 @@ void WSServer::httpHandShake(const TcpConnectionPtr& connection, const HttpReque
         return;
     }
     // 获取websocket-key
-    std::string key = request.getHeader("Sec-WebSocket-Key");
+    const std::string key = request.getHeader("Sec-WebSocket-Key");
     if (key.empty()) {
         ZMUDUO_LOG_ERROR << "[WSServer] http request Sec-WebSocket-Key is nullptr";
         // 获取websocket-key失败则强制关闭
@@ -100,18 +98,18 @@ void WSServer::httpHandShake(const TcpConnectionPtr& connection, const HttpReque
     }
     auto& response = context->getResponse();
     // 判断是否为子协议
-    std::string subProtocols = request.getHeader("Sec-WebSocket-Protocol");
-    if (!subProtocols.empty()) {
+    if (const std::string subProtocols = request.getHeader("Sec-WebSocket-Protocol"); !subProtocols.
+        empty()) {
         // 先去掉\r\t\n,然后再按;分割
         const auto& protocol =
             selectSubProtocol(Split(Trim(subProtocols), ';'));
         if (protocol) {
             // 成功选择了一个子协议
             response.setHeader("Sec-WebSocket-Protocol", protocol->getName());
-            std::get<3>(m_connections[it]) = protocol;
+            std::get<WSSubProtocol::Ptr>(m_connections[it]) = protocol;
         } else {
             ZMUDUO_LOG_ERROR << m_server.getName() << " not support the sub protocol: "
-                             << request.getHeader("Sec-WebSocket-Protocol");
+                << request.getHeader("Sec-WebSocket-Protocol");
             connection->forceClose();
             return;
         }
@@ -121,7 +119,7 @@ void WSServer::httpHandShake(const TcpConnectionPtr& connection, const HttpReque
     response.setClose(true);
     // 设置状态和原因
     response.setStatus(HttpStatus::SWITCHING_PROTOCOLS);
-    response.setReason(HttpStatusToString(http::HttpStatus::SWITCHING_PROTOCOLS));
+    response.setReason(HttpStatusToString(HttpStatus::SWITCHING_PROTOCOLS));
     response.setWebSocket(true);
     // 添加header
     response.setHeader("Upgrade", "websocket");
@@ -140,22 +138,21 @@ void WSServer::onWSCommunication(const TcpConnectionPtr& connection, Buffer& buf
     TcpConnection* it   = connection.get();
     auto           item = m_connections[it];
 needParse:
-    const auto& parser = std::get<2>(item);
+    const auto& parser = std::get<WSFrameParser::Ptr>(item);
     // 解析数据
-    int code = parser->parse(buffer, true);
-    if (code == 1) {
+    if (const int code = parser->parse(buffer, true); code == 1) {
         auto& wsFrame = parser->getWSFrameMessage();
         // 设置选择的子协议
-        const_cast<WSFrameMessage&>(wsFrame).m_subProtocol = std::get<3>(item);
+        const_cast<WSFrameMessage&>(wsFrame).m_subProtocol = std::get<WSSubProtocol::Ptr>(item);
         if (wsFrame.isControlFrame()) {
             // 使用onWSFrameControl接管控制帧率
             handleWSFrameControl(connection, wsFrame, true);
         } else {
             // 解析成功
-            m_dispatcher.handle(std::get<1>(item), wsFrame, connection);
+            m_dispatcher.handle(std::get<std::string>(item), wsFrame, connection);
         }
         // 重置解析器
-        std::get<2>(item) = std::make_shared<WSFrameParser>();
+        std::get<WSFrameParser::Ptr>(item) = std::make_shared<WSFrameParser>();
         // 如果buffer中仍有剩余的数据,则尝试再次解析
         if (buffer.getReadableBytes() > 0) {
             goto needParse;
@@ -165,7 +162,7 @@ needParse:
         // 解析失败,存在error,则发送CLOSE帧
         connection->send(
             WSFrameMessage::MakeCloseFrame(WSCloseCode::NORMAL_CLOSURE, parser->getErrorMessage())
-                .serialize(false));
+            .serialize(false));
     }
 }
 
@@ -182,4 +179,4 @@ WSSubProtocol::Ptr WSServer::selectSubProtocol(const std::vector<std::string>& s
     }
     return nullptr;
 }
-}  // namespace zmuduo::net::http::ws
+} // namespace zmuduo::net::http::ws

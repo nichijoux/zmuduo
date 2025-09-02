@@ -22,23 +22,20 @@ void defaultMessageCallback(const TcpConnectionPtr&, Buffer& buffer, const Times
 
 TcpConnection::TcpConnection(EventLoop*   loop,
                              std::string  name,
-                             int          socketFD,
+                             const int    socketFD,
                              Address::Ptr localAddress,
                              Address::Ptr peerAddress
 #ifdef ZMUDUO_ENABLE_OPENSSL
                              ,
                              SSL* ssl
 #endif
-                             )
+    )
     : m_eventLoop(EventLoop::checkNotNull(loop)),
       m_name(std::move(name)),
       m_socket(new TcpSocket(socketFD)),
       m_channel(new Channel(loop, socketFD)),
       m_localAddress(std::move(localAddress)),
-      m_peerAddress(std::move(peerAddress)),
-      m_state(State::CONNECTING),
-      m_reading(true),
-      m_highWaterMark(64 * 1024 * 1024)
+      m_peerAddress(std::move(peerAddress))
 #ifdef ZMUDUO_ENABLE_OPENSSL
       ,
       m_ssl(ssl),
@@ -110,7 +107,7 @@ void TcpConnection::forceClose() {
     }
 }
 
-void TcpConnection::setTcpNoDelay(bool on) {
+void TcpConnection::setTcpNoDelay(const bool on) const {
     m_socket->setTcpNoDelay(on);
 }
 
@@ -160,14 +157,12 @@ void TcpConnection::connectDestroyed() {
 
 void TcpConnection::continueSSLHandshake() {
     assert(m_sslState == SSLState::HANDSHAKING);
-    int ret = SSL_do_handshake(m_ssl);
-    if (ret == 1) {
+    if (const int ret = SSL_do_handshake(m_ssl); ret == 1) {
         m_sslState = SSLState::CONNECTED;
         ZMUDUO_LOG_FMT_IMPORTANT("SSL handshake success for %s", m_name.c_str());
         if (!SSL_is_server(m_ssl)) {
             // 客户端验证服务器证书
-            X509* cert = SSL_get_peer_certificate(m_ssl);
-            if (cert) {
+            if (X509* cert = SSL_get_peer_certificate(m_ssl)) {
                 char* subject = X509_NAME_oneline(X509_get_subject_name(cert), nullptr, 0);
                 char* issuer  = X509_NAME_oneline(X509_get_issuer_name(cert), nullptr, 0);
 
@@ -179,10 +174,9 @@ void TcpConnection::continueSSLHandshake() {
                 OPENSSL_free(issuer);
                 X509_free(cert);
 
-                long verify_result = SSL_get_verify_result(m_ssl);
-                if (verify_result != X509_V_OK) {
+                if (const long result = SSL_get_verify_result(m_ssl); result != X509_V_OK) {
                     ZMUDUO_LOG_ERROR << "证书验证失败: "
-                                     << X509_verify_cert_error_string(verify_result);
+                        << X509_verify_cert_error_string(result);
                     handleClose();
                 }
             } else {
@@ -196,8 +190,7 @@ void TcpConnection::continueSSLHandshake() {
         }
         m_channel->enableReading();
     } else {
-        int err = SSL_get_error(m_ssl, ret);
-        if (err == SSL_ERROR_WANT_READ) {
+        if (const int err = SSL_get_error(m_ssl, ret); err == SSL_ERROR_WANT_READ) {
             m_channel->enableReading();
         } else if (err == SSL_ERROR_WANT_WRITE) {
             m_channel->enableWriting();
@@ -222,8 +215,9 @@ void TcpConnection::handleRead(const Timestamp& receiveTime) {
     int savedErrno = 0;
     // 通过buffer读取数据
 #ifdef ZMUDUO_ENABLE_OPENSSL
-    ssize_t n = m_ssl ? m_inputBuffer.readSSL(m_ssl, &savedErrno) :
-                        m_inputBuffer.readFD(m_channel->getFD(), &savedErrno);
+    const ssize_t n = m_ssl ?
+                          m_inputBuffer.readSSL(m_ssl, &savedErrno) :
+                          m_inputBuffer.readFD(m_channel->getFD(), &savedErrno);
 #else
     ssize_t n = m_inputBuffer.readFD(m_channel->getFD(), &savedErrno);
 #endif
@@ -254,8 +248,9 @@ void TcpConnection::handleWrite() {
     if (m_channel->isWriting()) {
         int savedErrno;
 #ifdef ZMUDUO_ENABLE_OPENSSL
-        ssize_t n = m_ssl ? m_outputBuffer.writeSSL(m_ssl, &savedErrno) :
-                            m_outputBuffer.writeFD(m_channel->getFD(), &savedErrno);
+        const ssize_t n = m_ssl ?
+                              m_outputBuffer.writeSSL(m_ssl, &savedErrno) :
+                              m_outputBuffer.writeFD(m_channel->getFD(), &savedErrno);
 #else
         ssize_t n = m_outputBuffer.writeFD(m_channel->getFD(), &savedErrno);
 #endif
@@ -295,7 +290,7 @@ void TcpConnection::handleClose() {
 #endif
     m_channel->disableAll();
     // 获取当前指针，防止回调函数中TcpConnection被释放
-    TcpConnectionPtr guardThis(shared_from_this());
+    const TcpConnectionPtr guardThis(shared_from_this());
     if (m_connectionCallback) {
         m_connectionCallback(guardThis);
     }
@@ -306,8 +301,8 @@ void TcpConnection::handleClose() {
 
 void TcpConnection::handleError() {
     // 获取错误码
-    int savedErrno = sockets::getSocketError(m_channel->getFD());
-    if (savedErrno == EPIPE || savedErrno == ECONNRESET) {
+    if (const int savedErrno = sockets::getSocketError(m_channel->getFD());
+        savedErrno == EPIPE || savedErrno == ECONNRESET) {
         forceClose();
     } else {
         ZMUDUO_LOG_FMT_ERROR("TcpConnection::doWhenError [%s] - SO_ERROR = %d %s", m_name.c_str(),
@@ -315,7 +310,7 @@ void TcpConnection::handleError() {
     }
 }
 
-void TcpConnection::sendInLoop(const void* message, size_t length) {
+void TcpConnection::sendInLoop(const void* message, const size_t length) {
     if (length == 0) {
         return;
     }
@@ -330,8 +325,9 @@ void TcpConnection::sendInLoop(const void* message, size_t length) {
     if (!m_channel->isWriting() && m_outputBuffer.getReadableBytes() == 0) {
         // channel第一次开始写数据且缓冲区没有待发送的数据
 #ifdef ZMUDUO_ENABLE_OPENSSL
-        nwrote = m_ssl ? ::SSL_write(m_ssl, message, static_cast<int>(length)) :
-                         ::write(m_channel->getFD(), message, length);
+        nwrote = m_ssl ?
+                     ::SSL_write(m_ssl, message, static_cast<int>(length)) :
+                     ::write(m_channel->getFD(), message, length);
 #else
         nwrote = ::write(m_channel->getFD(), message, length);
 #endif
@@ -359,8 +355,8 @@ void TcpConnection::sendInLoop(const void* message, size_t length) {
         // poller发现缓冲区有空间会通知相应channel调用writeCallback方法
         // 也就是调用TcpConnection::handleWrite方法
         // 获取目前缓冲区剩余待发送的数据长度
-        size_t oldLen = m_outputBuffer.getReadableBytes();
-        if (oldLen + remaining >= m_highWaterMark && oldLen < m_highWaterMark &&
+        if (size_t oldLen = m_outputBuffer.getReadableBytes();
+            oldLen + remaining >= m_highWaterMark && oldLen < m_highWaterMark &&
             m_highWaterMarkCallback) {
             m_eventLoop->queueInLoop([this, oldLen, remaining] {
                 m_highWaterMarkCallback(shared_from_this(), oldLen + remaining);
@@ -383,7 +379,7 @@ void TcpConnection::forceCloseInLoop() {
     }
 }
 
-void TcpConnection::shutdownInLoop() {
+void TcpConnection::shutdownInLoop() const {
     m_eventLoop->assertInLoopThread();
     // 没有注册写事件，说明缓冲区没有待发送的数据
     if (!m_channel->isWriting()) {
@@ -417,4 +413,4 @@ void TcpConnection::stopReadInLoop() {
         m_reading = false;
     }
 }
-}  // namespace zmuduo::net
+} // namespace zmuduo::net

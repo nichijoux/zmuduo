@@ -39,7 +39,7 @@ using TimerCallback = std::function<void()>;
  * @endcode
  */
 class EventLoop : NoCopyable {
-  public:
+public:
     /**
      * @typedef std::function&lt;void()&gt;
      * @brief 定义回调函数类型，用于存储需要在事件循环中执行的任务。
@@ -51,7 +51,7 @@ class EventLoop : NoCopyable {
      */
     using ChannelList = std::vector<Channel*>;
 
-  public:
+public:
     /**
      * @brief 构造函数，初始化 EventLoop 实例。
      * @note 初始化 Poller、TimerQueue、wakeup 机制，并绑定当前线程。
@@ -116,7 +116,7 @@ class EventLoop : NoCopyable {
      * @param[in] cb 定时器回调函数。
      * @return 定时器 ID，用于后续取消。
      */
-    TimerId runAt(Timestamp time, TimerCallback cb);
+    TimerId runAt(Timestamp time, TimerCallback cb) const;
 
     /**
      * @brief 在指定延时后执行定时器任务。
@@ -124,7 +124,7 @@ class EventLoop : NoCopyable {
      * @param[in] cb 定时器回调函数。
      * @return 定时器 ID，用于后续取消。
      */
-    TimerId runAfter(double delay, TimerCallback cb);
+    TimerId runAfter(double delay, TimerCallback cb) const;
 
     /**
      * @brief 周期性执行定时器任务。
@@ -132,13 +132,13 @@ class EventLoop : NoCopyable {
      * @param[in] cb 定时器回调函数。
      * @return 定时器 ID，用于后续取消。
      */
-    TimerId runEvery(double interval, TimerCallback cb);
+    TimerId runEvery(double interval, TimerCallback cb) const;
 
     /**
      * @brief 取消指定的定时器任务。
      * @param[in] timerId 定时器 ID。
      */
-    void cancel(const TimerId& timerId);
+    void cancel(const TimerId& timerId) const;
 
     /**
      * @brief 唤醒事件循环线程，处理待执行任务。
@@ -151,7 +151,7 @@ class EventLoop : NoCopyable {
      * @param[in] channel 需要更新的 Channel 指针。
      * @note 必须在事件循环线程中调用，且 Channel 必须属于当前 EventLoop。
      */
-    void updateChannel(Channel* channel);
+    void updateChannel(Channel* channel) const;
 
     /**
      * @brief 移除指定的 Channel。
@@ -181,7 +181,7 @@ class EventLoop : NoCopyable {
      */
     static EventLoop* checkNotNull(EventLoop* loop);
 
-  private:
+private:
     /**
      * @brief 处理 wakeup 文件描述符的读事件。
      * @note 读取 wakeup 文件描述符的内容以清空事件。
@@ -194,22 +194,22 @@ class EventLoop : NoCopyable {
      */
     void doPendingFunctors();
 
-    std::atomic<bool>       m_looping;                 ///< 标记事件循环是否正在运行
-    std::atomic<bool>       m_quit;                    ///< 标记是否需要退出事件循环
-    std::atomic<bool>       m_eventHandling;           ///< 标记是否正在处理事件
-    std::atomic<bool>       m_callingPendingFunctors;  ///< 标记是否正在执行待处理回调
-    std::vector<Functor>    m_pendingFunctors;         ///< 待执行的回调函数队列
-    std::mutex              m_mutex;                   ///< 保护回调队列的互斥锁
-    int64_t                 m_iteration;               ///< 事件循环的迭代次数
-    const pid_t             m_threadId;                ///< 事件循环所属线程 ID
-    Timestamp               m_pollReturnTime;          ///< 最近一次 Poller 返回的时间戳
-    std::unique_ptr<Poller> m_poller;                  ///< IO 事件监听器
-    std::unique_ptr<TimerQueue> m_timerQueue;          ///< 定时器队列
-    int                         m_wakeupFd;            ///< wakeup 机制的文件描述符
-    std::unique_ptr<Channel>    m_wakeupChannel;       ///< wakeup 机制的 Channel
-    ChannelList                 m_activeChannels;      ///< 活跃的 Channel 列表
-    Channel*                    m_currentActiveChannel;  ///< 当前处理的活跃 Channel
+    std::atomic<bool>           m_looping                = false; ///< 标记事件循环是否正在运行
+    std::atomic<bool>           m_quit                   = false; ///< 标记是否需要退出事件循环
+    std::atomic<bool>           m_eventHandling          = false; ///< 标记是否正在处理事件
+    std::atomic<bool>           m_callingPendingFunctors = false; ///< 标记是否正在执行待处理回调
+    std::vector<Functor>        m_pendingFunctors;                ///< 待执行的回调函数队列
+    std::mutex                  m_mutex;                          ///< 保护回调队列的互斥锁
+    int64_t                     m_iteration = 0;                  ///< 事件循环的迭代次数
+    const pid_t                 m_threadId;                       ///< 事件循环所属线程 ID
+    Timestamp                   m_pollReturnTime;                 ///< 最近一次 Poller 返回的时间戳
+    std::unique_ptr<Poller>     m_poller;                         ///< IO 事件监听器
+    std::unique_ptr<TimerQueue> m_timerQueue;                     ///< 定时器队列
+    int                         m_wakeupFd;                       ///< wakeup 机制的文件描述符
+    std::unique_ptr<Channel>    m_wakeupChannel;                  ///< wakeup 机制的 Channel
+    ChannelList                 m_activeChannels;                 ///< 活跃的 Channel 列表
+    Channel*                    m_currentActiveChannel = nullptr; ///< 当前处理的活跃 Channel
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

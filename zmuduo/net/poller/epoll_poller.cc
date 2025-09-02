@@ -16,7 +16,9 @@ enum EpollPollerState {
 };
 
 EpollPoller::EpollPoller(EventLoop* loop)
-    : Poller(loop), m_epollFD(::epoll_create1(EPOLL_CLOEXEC)), m_events(S_INIT_EVENT_LIST_SIZE) {
+    : Poller(loop),
+      m_epollFD(::epoll_create1(EPOLL_CLOEXEC)),
+      m_events(S_INIT_EVENT_LIST_SIZE) {
     // 判断是否创建成功
     if (m_epollFD < 0) {
         ZMUDUO_LOG_FMT_FATAL("EPollPoller::EPollPoller");
@@ -27,11 +29,11 @@ EpollPoller::~EpollPoller() {
     ::close(m_epollFD);
 }
 
-Timestamp EpollPoller::poll(int timeoutMs, ChannelList* activeChannels) {
+Timestamp EpollPoller::poll(const int timeoutMs, ChannelList* activeChannels) {
     ZMUDUO_LOG_FMT_INFO("epollFD is %d,total fd count is %ld", m_epollFD, m_channels.size());
-    int numEvents =
+    const int numEvents =
         ::epoll_wait(m_epollFD, m_events.data(), static_cast<int>(m_events.size()), timeoutMs);
-    auto now = Timestamp::Now();
+    const auto now = Timestamp::Now();
     if (numEvents > 0) {
         ZMUDUO_LOG_FMT_INFO("%d events happended", numEvents);
         // 有事件发生
@@ -53,13 +55,13 @@ Timestamp EpollPoller::poll(int timeoutMs, ChannelList* activeChannels) {
 }
 
 void EpollPoller::updateChannel(Channel* channel) {
-    Poller::assertInLoopThread();
+    assertInLoopThread();
     ZMUDUO_LOG_FMT_INFO("fd is %d,events is %d,state is %d", channel->getFD(), channel->getEvents(),
                         channel->getIndex());
     // 获取当前channel的状态
     const int index = channel->getIndex();
-    int       fd    = channel->getFD();
-    if (index == EpollPollerState::NEW || index == EpollPollerState::DELETED) {
+    const int fd    = channel->getFD();
+    if (index == NEW || index == DELETED) {
         if (index == NEW) {
             // new
             assert(m_channels.find(fd) == m_channels.end());
@@ -69,7 +71,7 @@ void EpollPoller::updateChannel(Channel* channel) {
             assert(m_channels.find(fd) != m_channels.end());
             assert(m_channels[fd] == channel);
         }
-        channel->setIndex(EpollPollerState::ADDED);
+        channel->setIndex(ADDED);
         update(EPOLL_CTL_ADD, channel);
     } else {
         // update existing one with EPOLL_CTL_MOD/DEL
@@ -78,7 +80,7 @@ void EpollPoller::updateChannel(Channel* channel) {
         // 如果channel没有事件,那就删除
         if (channel->isNoneEvent()) {
             update(EPOLL_CTL_DEL, channel);
-            channel->setIndex(EpollPollerState::DELETED);
+            channel->setIndex(DELETED);
         } else {
             update(EPOLL_CTL_MOD, channel);
         }
@@ -86,26 +88,26 @@ void EpollPoller::updateChannel(Channel* channel) {
 }
 
 void EpollPoller::removeChannel(Channel* channel) {
-    Poller::assertInLoopThread();
-    int fd = channel->getFD();
+    assertInLoopThread();
+    const int fd = channel->getFD();
     ZMUDUO_LOG_FMT_INFO("channel's fd is %d", fd);
     // channel必须存在且事件应该为空
     assert(hasChannel(channel));
     assert(channel->isNoneEvent());
     // 获取当前channel状态
-    int index = channel->getIndex();
-    assert(index == EpollPollerState::ADDED || index == EpollPollerState::DELETED);
+    const int index = channel->getIndex();
+    assert(index == ADDED || index == DELETED);
     // 从map中删除
-    size_t n = m_channels.erase(fd);
+    const size_t n = m_channels.erase(fd);
     assert(n == 1);
 
-    if (index == EpollPollerState::ADDED) {
+    if (index == ADDED) {
         update(EPOLL_CTL_DEL, channel);
     }
-    channel->setIndex(EpollPollerState::NEW);
+    channel->setIndex(NEW);
 }
 
-void EpollPoller::fillActiveChannels(int numEvents, ChannelList* activeChannels) const {
+void EpollPoller::fillActiveChannels(const int numEvents, ChannelList* activeChannels) const {
     assert(static_cast<size_t>(numEvents) <= m_events.size());
     for (int i = 0; i < numEvents; ++i) {
         auto* channel = static_cast<Channel*>(m_events[i].data.ptr);
@@ -120,16 +122,15 @@ void EpollPoller::fillActiveChannels(int numEvents, ChannelList* activeChannels)
     }
 }
 
-void EpollPoller::update(int operation, Channel* channel) const {
+void EpollPoller::update(const int operation, Channel* channel) const {
     epoll_event event{};
     bzero(&event, sizeof(event));
     // channel注册的事件
     event.events   = channel->getEvents();
     event.data.ptr = channel;
     // 获取channel的fd
-    int fd = channel->getFD();
     // 更新epoll的事件
-    if (epoll_ctl(m_epollFD, operation, fd, &event) < 0) {
+    if (const int fd = channel->getFD(); epoll_ctl(m_epollFD, operation, fd, &event) < 0) {
         // epoll_ctl失败
         if (operation == EPOLL_CTL_DEL) {
             ZMUDUO_LOG_FMT_ERROR("epoll_ctl del error %d", errno);
@@ -138,4 +139,4 @@ void EpollPoller::update(int operation, Channel* channel) const {
         }
     }
 }
-}  // namespace zmuduo::net
+} // namespace zmuduo::net

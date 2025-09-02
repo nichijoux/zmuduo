@@ -10,9 +10,10 @@ namespace zmuduo::net::http {
 HttpServer::HttpServer(EventLoop*          loop,
                        const Address::Ptr& listenAddress,
                        const std::string&  name,
-                       bool                keepAlive /* = false */,
-                       bool                reusePort /* = false */)
-    : m_server(loop, listenAddress, name, reusePort), m_keepAlive(keepAlive) {
+                       const bool          keepAlive /* = false */,
+                       const bool          reusePort /* = false */)
+    : m_server(loop, listenAddress, name, reusePort),
+      m_keepAlive(keepAlive) {
     m_server.setConnectionCallback(
         [this](const TcpConnectionPtr& connection) { onConnection(connection); });
     m_server.setMessageCallback(
@@ -27,7 +28,7 @@ void HttpServer::start() {
     m_server.start();
 }
 
-void HttpServer::onConnection(const TcpConnectionPtr& connection) {
+void HttpServer::onConnection(const TcpConnectionPtr& connection) const {
     ZMUDUO_LOG_FMT_DEBUG("%s -> %s is %s", connection->getLocalAddress()->toString().c_str(),
                          m_server.getIpPort().c_str(), connection->isConnected() ? "UP" : "DOWN");
     if (connection->isConnected()) {
@@ -38,13 +39,12 @@ void HttpServer::onConnection(const TcpConnectionPtr& connection) {
 
 void HttpServer::onMessage(const TcpConnectionPtr& connection,
                            Buffer&                 buffer,
-                           const Timestamp&        receiveTime) {
+                           const Timestamp&        receiveTime) const {
 needParse:
     // 获取上下文
-    auto context = std::any_cast<HttpContext::Ptr>(connection->getContext());
+    const auto context = std::any_cast<HttpContext::Ptr>(connection->getContext());
     // 根据servlet进行匹配
-    int parseResult = context->parseRequest(buffer);
-    if (parseResult == 1) {
+    if (const int parseResult = context->parseRequest(buffer); parseResult == 1) {
         // 请求解析成功
         auto& request  = context->getRequest();
         auto& response = context->getResponse();
@@ -73,5 +73,4 @@ needParse:
         connection->forceClose();
     }
 }
-
-}  // namespace zmuduo::net::http
+} // namespace zmuduo::net::http

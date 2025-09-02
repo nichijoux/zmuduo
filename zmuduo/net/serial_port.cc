@@ -13,12 +13,8 @@
 namespace zmuduo::net {
 SerialPort::SerialPort(EventLoop* loop, std::string portName, const SerialConfig& config)
     : m_eventLoop(loop),
-      m_fd(-1),
       m_portName(std::move(portName)),
-      m_config(config),
-      m_opened(false),
-      m_channel(nullptr),
-      m_messageCallback(nullptr) {}
+      m_config(config) {}
 
 SerialPort::~SerialPort() {
     close();
@@ -42,8 +38,8 @@ void SerialPort::open() {
     // 创建并启动channel
     m_channel = std::make_unique<Channel>(m_eventLoop, m_fd);
     m_channel->setReadCallback([this](auto) { handleRead(); });
-    m_channel->setWriteCallback([this]() { handleWrite(); });
-    m_channel->setErrorCallback([this]() { handleError(); });
+    m_channel->setWriteCallback([this] { handleWrite(); });
+    m_channel->setErrorCallback([this] { handleError(); });
     m_channel->enableReading();
     // 设置串口状态为已经打开
     m_opened = true;
@@ -74,8 +70,8 @@ void SerialPort::setConfig(const SerialConfig& config) {
 }
 
 void SerialPort::applyConfig() const {
-    struct termios tty {};
-    bzero(&tty, sizeof(tty));  // 初始化为 0
+    termios tty{};
+    bzero(&tty, sizeof(tty)); // 初始化为 0
 
     if (tcgetattr(m_fd, &tty) != 0) {
         ZMUDUO_LOG_ERROR << "Error from tcgetattr: " << strerror(errno);
@@ -87,38 +83,41 @@ void SerialPort::applyConfig() const {
     cfsetispeed(&tty, m_config.baudRate);
 
     // --- 控制标志 (c_cflag) ---
-    tty.c_cflag &= ~CSIZE;  // 清除数据位设置
+    tty.c_cflag &= ~CSIZE; // 清除数据位设置
     switch (m_config.dataBits) {
-        case SerialConfig::DB_5: tty.c_cflag |= CS5; break;
-        case SerialConfig::DB_6: tty.c_cflag |= CS6; break;
-        case SerialConfig::DB_7: tty.c_cflag |= CS7; break;
+        case SerialConfig::DB_5: tty.c_cflag |= CS5;
+            break;
+        case SerialConfig::DB_6: tty.c_cflag |= CS6;
+            break;
+        case SerialConfig::DB_7: tty.c_cflag |= CS7;
+            break;
         case SerialConfig::DB_8:
-        default: tty.c_cflag |= CS8; break;  // 默认为 8 位
+        default: tty.c_cflag |= CS8;
+            break; // 默认为 8 位
     }
     // 校验设置
     switch (m_config.parity) {
-        case SerialConfig::NONE:
-            tty.c_cflag &= ~PARENB;  // 关闭校验
-            tty.c_iflag &= ~INPCK;   // 关闭输入校验
+        case SerialConfig::NONE: tty.c_cflag &= ~PARENB; // 关闭校验
+            tty.c_iflag &= ~INPCK;                       // 关闭输入校验
             break;
-        case SerialConfig::ODD:
-            tty.c_cflag |= PARENB;  // 开启校验
-            tty.c_cflag |= PARODD;  // 奇校验
-            tty.c_iflag |= INPCK;   // 开启输入校验
+        case SerialConfig::ODD: tty.c_cflag |= PARENB; // 开启校验
+            tty.c_cflag |= PARODD;                     // 奇校验
+            tty.c_iflag |= INPCK;                      // 开启输入校验
             break;
-        case SerialConfig::EVEN:
-            tty.c_cflag |= PARENB;   // 开启校验
-            tty.c_cflag &= ~PARODD;  // 偶校验
-            tty.c_iflag |= INPCK;    // 开启输入校验
+        case SerialConfig::EVEN: tty.c_cflag |= PARENB; // 开启校验
+            tty.c_cflag &= ~PARODD;                     // 偶校验
+            tty.c_iflag |= INPCK;                       // 开启输入校验
             break;
     }
     // 停止位设置
     switch (m_config.stopBits) {
-        case SerialConfig::ONE: tty.c_cflag &= ~CSTOPB; break;  // 1 停止位
-        case SerialConfig::TWO: tty.c_cflag |= CSTOPB; break;   // 2 停止位
+        case SerialConfig::ONE: tty.c_cflag &= ~CSTOPB;
+            break; // 1 停止位
+        case SerialConfig::TWO: tty.c_cflag |= CSTOPB;
+            break; // 2 停止位
     }
 
-    tty.c_cflag |= CREAD | CLOCAL;  // 开启接收器, 忽略调制解调器控制线
+    tty.c_cflag |= CREAD | CLOCAL; // 开启接收器, 忽略调制解调器控制线
 
     // --- 本地标志 (c_lflag) ---
     // 设置为原始模式 (Raw Mode)
@@ -139,17 +138,17 @@ void SerialPort::applyConfig() const {
     tty.c_cc[VTIME] = static_cast<cc_t>(0.01);
 
     // --- 应用设置 ---
-    tcflush(m_fd, TCIOFLUSH);                   // 清空输入输出缓冲区
-    if (tcsetattr(m_fd, TCSANOW, &tty) != 0) {  // TCSANOW: 立即生效
+    tcflush(m_fd, TCIOFLUSH); // 清空输入输出缓冲区
+    if (tcsetattr(m_fd, TCSANOW, &tty) != 0) {
+        // TCSANOW: 立即生效
         ZMUDUO_LOG_ERROR << "Error from tcsetattr: " << strerror(errno);
     }
 }
 
 void SerialPort::handleRead() {
-    int     savedErrno;
-    ssize_t n = m_inputBuffer.readFD(m_fd, &savedErrno);
+    int savedErrno;
     // 收到数据
-    if (n > 0) {
+    if (const ssize_t n = m_inputBuffer.readFD(m_fd, &savedErrno); n > 0) {
         if (m_messageCallback) {
             m_messageCallback(*this, m_inputBuffer);
         }
@@ -167,9 +166,8 @@ void SerialPort::handleRead() {
 void SerialPort::handleWrite() {
     m_eventLoop->assertInLoopThread();
     if (m_channel->isWriting()) {
-        int     savedErrno;
-        ssize_t n = m_outputBuffer.writeFD(m_channel->getFD(), &savedErrno);
-        if (n > 0) {
+        int savedErrno;
+        if (const ssize_t n = m_outputBuffer.writeFD(m_channel->getFD(), &savedErrno); n > 0) {
             m_outputBuffer.retrieve(n);
             if (m_outputBuffer.getReadableBytes() == 0) {
                 // 发送完成
@@ -200,13 +198,13 @@ void SerialPort::handleClose() {
     }
 }
 
-void SerialPort::handleError() {
+void SerialPort::handleError() const {
     // 获取错误码
-    int savedErrno = sockets::getSocketError(m_channel->getFD());
+    const int savedErrno = sockets::getSocketError(m_channel->getFD());
     ZMUDUO_LOG_ERROR << "SO_ERROR because " << strerror(savedErrno);
 }
 
-void SerialPort::sendInLoop(const void* data, size_t length) {
+void SerialPort::sendInLoop(const void* data, const size_t length) {
     if (length == 0) {
         return;
     }
@@ -248,4 +246,4 @@ void SerialPort::sendInLoop(const void* data, size_t length) {
         }
     }
 }
-}  // namespace zmuduo::net
+} // namespace zmuduo::net

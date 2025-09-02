@@ -12,10 +12,7 @@
 namespace zmuduo::net {
 Connector::Connector(EventLoop* loop, Address::Ptr serverAddress)
     : m_eventLoop(loop),
-      m_serverAddress(std::move(serverAddress)),
-      m_connect(false),
-      m_state(State::DISCONNECTED),
-      m_retryDelayMs(S_INIT_RETRY_DELAY_MS) {
+      m_serverAddress(std::move(serverAddress)) {
     ZMUDUO_LOG_FMT_DEBUG("ctor[%p]", this);
 }
 
@@ -57,29 +54,30 @@ void Connector::startInLoop() {
 void Connector::stopInLoop() {
     m_eventLoop->assertInLoopThread();
     if (m_state == State::CONNECTING) {
-        m_state      = State::DISCONNECTED;
-        int socketFD = removeAndResetChannel();
+        m_state            = State::DISCONNECTED;
+        const int socketFD = removeAndResetChannel();
         retry(socketFD);
     }
 }
 
 void Connector::connect() {
-    int socketFD = sockets::createNonblockingOrDie(m_serverAddress->getFamily());
+    const int socketFD = sockets::createNonblockingOrDie(m_serverAddress->getFamily());
     // 非阻塞模式下，connect 会立即返回 EINPROGRESS（连接正在进行中）
-    int ret        = ::connect(socketFD, m_serverAddress->getSockAddress(),
-                               m_serverAddress->getSockAddressLength());
-    int savedErrno = ret == 0 ? 0 : errno;
-    switch (savedErrno) {
+    const int ret = ::connect(socketFD, m_serverAddress->getSockAddress(),
+                              m_serverAddress->getSockAddressLength());
+    switch (const int savedErrno = ret == 0 ? 0 : errno) {
         case 0:
         case EINPROGRESS:
         case EINTR:
-        case EISCONN: connecting(socketFD); break;
+        case EISCONN: connecting(socketFD);
+            break;
 
         case EAGAIN:
         case EADDRINUSE:
         case EADDRNOTAVAIL:
         case ECONNREFUSED:
-        case ENETUNREACH: retry(socketFD); break;
+        case ENETUNREACH: retry(socketFD);
+            break;
 
         case EACCES:
         case EPERM:
@@ -114,9 +112,8 @@ void Connector::connecting(int socketFD) {
 void Connector::handleWrite() {
     // 没有连接成功
     if (m_state == State::CONNECTING) {
-        int socketFD = removeAndResetChannel();
-        int err      = sockets::getSocketError(socketFD);
-        if (err) {
+        const int socketFD = removeAndResetChannel();
+        if (const int err = sockets::getSocketError(socketFD)) {
             ZMUDUO_LOG_FMT_ERROR("SO_ERROR = %s", strerror(err));
             retry(socketFD);
         } else if (sockets::isSelfConnect(socketFD)) {
@@ -136,14 +133,14 @@ void Connector::handleWrite() {
 void Connector::handleError() {
     ZMUDUO_LOG_FMT_ERROR("state %d", static_cast<int>(m_state));
     if (m_state == State::CONNECTING) {
-        int socketFD = removeAndResetChannel();
-        int err      = sockets::getSocketError(socketFD);
+        const int socketFD = removeAndResetChannel();
+        const int err      = sockets::getSocketError(socketFD);
         ZMUDUO_LOG_FMT_ERROR("SO_ERROR = %s", strerror(err));
         retry(socketFD);
     }
 }
 
-void Connector::retry(int socketFD) {
+void Connector::retry(const int socketFD) {
     ::close(socketFD);
     m_state = State::DISCONNECTED;
     if (m_connect) {
@@ -162,7 +159,7 @@ int Connector::removeAndResetChannel() {
     // 清理临时 Channel
     m_channel->disableAll();
     m_channel->remove();
-    int socketFD = m_channel->getFD();
+    const int socketFD = m_channel->getFD();
     m_eventLoop->queueInLoop([ptr = shared_from_this()] { ptr->resetChannel(); });
     return socketFD;
 }
@@ -170,5 +167,4 @@ int Connector::removeAndResetChannel() {
 void Connector::resetChannel() {
     m_channel.reset();
 }
-
-}  // namespace zmuduo::net
+} // namespace zmuduo::net

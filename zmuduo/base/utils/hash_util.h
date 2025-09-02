@@ -3,8 +3,6 @@
 #ifndef ZMUDUO_BASE_UTILS_HASH_UTIL_H
 #define ZMUDUO_BASE_UTILS_HASH_UTIL_H
 
-#include "zmuduo/base/nocopyable.h"
-#include "zmuduo/base/nomoveable.h"
 #include <string>
 
 /**
@@ -14,7 +12,6 @@
  * 提供 Base64 编码/解码、SHA1 哈希计算、十六进制转二进制、随机字符串生成等常用工具函数。<br/>
  */
 namespace zmuduo::utils::hash_util {
-
 /**
  * @brief 解码 Base64 编码的字符串。
  *
@@ -86,6 +83,6 @@ std::string MD5(const std::string& input, int bitLength = 32, bool toUpper = fal
  * @return int8_t范围内数据组成的随机字符串。
  */
 std::string RandomString(size_t length);
-}  // namespace zmuduo::utils::hash_util
+} // namespace zmuduo::utils::hash_util
 
 #endif

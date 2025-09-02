@@ -3,8 +3,6 @@
 #ifndef ZMUDUO_BASE_UTILS_STRING_UTIL_H
 #define ZMUDUO_BASE_UTILS_STRING_UTIL_H
 
-#include "zmuduo/base/nocopyable.h"
-#include "zmuduo/base/nomoveable.h"
 #include <string>
 #include <vector>
 
@@ -13,7 +11,6 @@
  * @brief 字符串工具类
  */
 namespace zmuduo::utils::string_util {
-
 /**
  * @brief 对 URL 的路径、查询字符串和片段进行编码
  *
@@ -203,7 +200,6 @@ std::vector<std::string> Split(const std::string& str, const std::string& delimi
  * @endcode
  */
 bool StartsWith(const std::string& str, const std::string& prefix);
-
-}  // namespace zmuduo::utils::string_util
+} // namespace zmuduo::utils::string_util
 
 #endif

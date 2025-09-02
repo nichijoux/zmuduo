@@ -3,8 +3,6 @@
 #ifndef ZMUDUO_BASE_UTILS_COMMON_UTIL_H
 #define ZMUDUO_BASE_UTILS_COMMON_UTIL_H
 
-#include "zmuduo/base/nocopyable.h"
-#include "zmuduo/base/nomoveable.h"
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -25,7 +23,7 @@ namespace zmuduo::utils::common_util {
  * @throws std::invalid_argument 当 ptr 为 nullptr 时抛出异常。
  */
 template <typename T>
-inline const T& CheckNotNull(T* ptr, const std::string& message = "checkNotNull: nullptr") {
+const T& CheckNotNull(T* ptr, const std::string& message = "checkNotNull: nullptr") {
     if (!ptr) {
         throw std::invalid_argument(message);
     }
@@ -43,8 +41,8 @@ inline const T& CheckNotNull(T* ptr, const std::string& message = "checkNotNull:
  * @throws std::invalid_argument 当 ptr 为 nullptr 时抛出异常。
  */
 template <typename T>
-inline const T& CheckNotNull(const std::shared_ptr<T>& ptr,
-                             const std::string&        message = "checkNotNull: nullptr") {
+const T& CheckNotNull(const std::shared_ptr<T>& ptr,
+                      const std::string&        message = "checkNotNull: nullptr") {
     if (!ptr) {
         throw std::invalid_argument(message);
     }
@@ -62,14 +60,13 @@ inline const T& CheckNotNull(const std::shared_ptr<T>& ptr,
  * @throws std::invalid_argument 当 ptr 为 nullptr 时抛出异常。
  */
 template <typename T>
-inline const T& CheckNotNull(const std::unique_ptr<T>& ptr,
-                             const std::string&        message = "checkNotNull: nullptr") {
+const T& CheckNotNull(const std::unique_ptr<T>& ptr,
+                      const std::string&        message = "checkNotNull: nullptr") {
     if (!ptr) {
         throw std::invalid_argument(message);
     }
     return *ptr;
 }
-
-}  // namespace zmuduo::utils::common_util
+} // namespace zmuduo::utils::common_util
 
 #endif

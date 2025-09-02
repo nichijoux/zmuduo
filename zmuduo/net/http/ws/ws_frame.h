@@ -11,7 +11,6 @@
 #include <string>
 
 namespace zmuduo::net::http::ws {
-
 /**
  * @brief WebSocket 关闭代码枚举。
  *
@@ -59,7 +58,7 @@ enum class WSCloseCode {
 #define XX(num, name, string) name = num,
     WS_CLOSE_CODE_MAP(XX)
 #undef XX
-        INVALID_CLOSE_CODE  ///< 无效关闭代码
+    INVALID_CLOSE_CODE ///< 无效关闭代码
 };
 
 /**
@@ -113,12 +112,12 @@ WSCloseCode CharsToWSCloseCode(const char* s);
  */
 struct WSFrameHead {
     enum {
-        CONTINUE   = 0,    ///< 数据分片帧
-        TEXT_FRAME = 1,    ///< 文本帧
-        BIN_FRAME  = 2,    ///< 二进制帧
-        CLOSE      = 8,    ///< 关闭帧
-        PING       = 0x9,  ///< PING 帧
-        PONG       = 0xA   ///< PONG 帧
+        CONTINUE = 0,   ///< 数据分片帧
+        TEXT_FRAME = 1, ///< 文本帧
+        BIN_FRAME = 2,  ///< 二进制帧
+        CLOSE = 8,      ///< 关闭帧
+        PING = 0x9,     ///< PING 帧
+        PONG = 0xA      ///< PONG 帧
     };
 
     /**
@@ -155,14 +154,14 @@ struct WSFrameHead {
      */
     std::string toString() const;
 
-  public:
-    bool     fin : 1;            ///< 是否为消息的最后一帧（true 表示最后一帧）
-    bool     rsv1 : 1;           ///< 保留位 1，通常为 0，除非协商了扩展
-    bool     rsv2 : 1;           ///< 保留位 2，通常为 0，除非协商了扩展
-    bool     rsv3 : 1;           ///< 保留位 3，通常为 0，除非协商了扩展
-    uint8_t  opcode : 4;         ///< 帧类型（0x0-0xF，定义帧用途）
-    bool     mask : 1;           ///< 是否使用掩码（客户端发送必须为 true）
-    uint16_t payloadLength : 7;  ///< payload 长度（0-125 或 126/127 表示扩展长度）
+public:
+    bool     fin : 1;           ///< 是否为消息的最后一帧（true 表示最后一帧）
+    bool     rsv1 : 1;          ///< 保留位 1，通常为 0，除非协商了扩展
+    bool     rsv2 : 1;          ///< 保留位 2，通常为 0，除非协商了扩展
+    bool     rsv3 : 1;          ///< 保留位 3，通常为 0，除非协商了扩展
+    uint8_t  opcode : 4;        ///< 帧类型（0x0-0xF，定义帧用途）
+    bool     mask : 1;          ///< 是否使用掩码（客户端发送必须为 true）
+    uint16_t payloadLength : 7; ///< payload 长度（0-125 或 126/127 表示扩展长度）
 };
 #pragma pack()
 
@@ -186,8 +185,8 @@ struct WSFrameHead {
  * @endcode
  */
 class WSSubProtocol {
-  public:
-    using Ptr = std::shared_ptr<WSSubProtocol>;  ///< 智能指针类型
+public:
+    using Ptr = std::shared_ptr<WSSubProtocol>; ///< 智能指针类型
 
     virtual ~WSSubProtocol() = default;
 
@@ -204,8 +203,8 @@ class WSSubProtocol {
      */
     virtual std::any process(const std::string& payload) = 0;
 
-  private:
-    std::string m_name;  ///< 协议名称
+private:
+    std::string m_name; ///< 协议名称
 };
 
 /**
@@ -245,9 +244,9 @@ struct WSSubProtocolCompare {
  * // 通过 TcpConnection 发送 data
  * @endcode
  */
-struct WSFrameMessage : public Copyable {
-  public:
-    using Ptr = std::shared_ptr<WSFrameMessage>;  ///< 智能指针类型
+struct WSFrameMessage : Copyable {
+public:
+    using Ptr = std::shared_ptr<WSFrameMessage>; ///< 智能指针类型
 
     /**
      * @brief 构造 CLOSE 帧。
@@ -257,7 +256,7 @@ struct WSFrameMessage : public Copyable {
      */
     static WSFrameMessage MakeCloseFrame(WSCloseCode statusCode, const std::string& reason);
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] opcode 帧类型（如 WSFrameHead::TEXT_FRAME）。
@@ -267,7 +266,9 @@ struct WSFrameMessage : public Copyable {
     explicit WSFrameMessage(uint8_t            opcode      = 0,
                             std::string        data        = "",
                             WSSubProtocol::Ptr subProtocol = nullptr)
-        : m_opcode(opcode), m_payload(std::move(data)), m_subProtocol(std::move(subProtocol)) {}
+        : m_opcode(opcode),
+          m_payload(std::move(data)),
+          m_subProtocol(std::move(subProtocol)) {}
 
     /**
      * @brief 判断当前帧是否为控制帧。
@@ -295,10 +296,10 @@ struct WSFrameMessage : public Copyable {
      */
     std::string serialize(bool isClient) const;
 
-  public:
-    uint8_t            m_opcode;       ///< 帧类型
-    std::string        m_payload;      ///< 数据内容
-    WSSubProtocol::Ptr m_subProtocol;  ///< 子协议
+public:
+    uint8_t            m_opcode;      ///< 帧类型
+    std::string        m_payload;     ///< 数据内容
+    WSSubProtocol::Ptr m_subProtocol; ///< 子协议
 };
 
 /**
@@ -312,7 +313,6 @@ struct WSFrameMessage : public Copyable {
 void handleWSFrameControl(const TcpConnectionPtr& connection,
                           const WSFrameMessage&   message,
                           bool                    isFromClient);
-
-}  // namespace zmuduo::net::http::ws
+} // namespace zmuduo::net::http::ws
 
 #endif

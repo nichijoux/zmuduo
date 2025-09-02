@@ -32,7 +32,7 @@ void setNonBlockAndCloseOnExec(int socketFD) {
 }
 #endif
 
-int createNonblockingOrDie(sa_family_t family) {
+int createNonblockingOrDie(const sa_family_t family) {
 #if VALGRIND
     int socketFD = ::socket(family, SOCK_STREAM, IPPROTO_TCP);
     if (socketFD < 0) {
@@ -42,74 +42,74 @@ int createNonblockingOrDie(sa_family_t family) {
     setNonBlockAndCloseOnExec(socketFD);
 #else
 
-    int sockfd = ::socket(family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_TCP);
-    if (sockfd < 0) {
+    const int sockFD = ::socket(family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_TCP);
+    if (sockFD < 0) {
         ZMUDUO_LOG_FMT_FATAL("sockets::createNonblockingOrDie");
     }
 #endif
-    return sockfd;
+    return sockFD;
 }
 
-int getSocketError(int sockfd) {
-    int  optval;
-    auto optlen = static_cast<socklen_t>(sizeof(optval));
+int getSocketError(const int sockFD) {
+    int  optVal;
+    auto optLen = static_cast<socklen_t>(sizeof(optVal));
 
-    if (::getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &optval, &optlen) < 0) {
+    if (::getsockopt(sockFD, SOL_SOCKET, SO_ERROR, &optVal, &optLen) < 0) {
         return errno;
-    } else {
-        return optval;
     }
+    return optVal;
 }
 
 const sockaddr* sockaddr_cast(const sockaddr_in* addr) {
-    return static_cast<const sockaddr*>(implicit_cast<const void*>(addr));
+    return static_cast<const sockaddr*>(reinterpret_cast<const void*>(addr));
 }
 
 const sockaddr* sockaddr_cast(const sockaddr_in6* addr) {
-    return static_cast<const sockaddr*>(implicit_cast<const void*>(addr));
+    return static_cast<const sockaddr*>(reinterpret_cast<const void*>(addr));
 }
 
 const sockaddr_in* sockaddr_in_cast(const sockaddr* addr) {
-    return static_cast<const sockaddr_in*>(implicit_cast<const void*>(addr));
+    return static_cast<const sockaddr_in*>(reinterpret_cast<const void*>(addr));
 }
 
 const sockaddr_in6* sockaddr_in6_cast(const sockaddr* addr) {
-    return static_cast<const sockaddr_in6*>(implicit_cast<const void*>(addr));
+    return static_cast<const sockaddr_in6*>(reinterpret_cast<const void*>(addr));
 }
 
-sockaddr_in getLocalAddress(int sockfd) {
+sockaddr_in getLocalAddress(const int sockFD) {
     sockaddr_in address{};
     auto        length = static_cast<socklen_t>(sizeof(address));
     bzero(&address, length);
-    getsockname(sockfd, reinterpret_cast<sockaddr*>(&address), &length);
+    getsockname(sockFD, reinterpret_cast<sockaddr*>(&address), &length);
     return address;
 }
 
-sockaddr_in getPeerAddress(int sockfd) {
+sockaddr_in getPeerAddress(const int sockFD) {
     sockaddr_in address{};
     auto        length = static_cast<socklen_t>(sizeof(address));
     bzero(&address, length);
-    getpeername(sockfd, reinterpret_cast<sockaddr*>(&address), &length);
+    getpeername(sockFD, reinterpret_cast<sockaddr*>(&address), &length);
     return address;
 }
 
-bool isSelfConnect(int sockFD) {
+bool isSelfConnect(const int sockFD) {
     auto localAddress = getLocalAddress(sockFD);
     auto peerAddress  = getPeerAddress(sockFD);
     if (localAddress.sin_family == AF_INET) {
         // ipv4
-        auto localAddressIn = reinterpret_cast<const sockaddr_in*>(&localAddress);
-        auto peerAddressIn  = reinterpret_cast<const sockaddr_in*>(&peerAddress);
+        const auto localAddressIn = reinterpret_cast<const sockaddr_in*>(&localAddress);
+        const auto peerAddressIn  = reinterpret_cast<const sockaddr_in*>(&peerAddress);
         return localAddressIn->sin_port == peerAddressIn->sin_port &&
                localAddressIn->sin_addr.s_addr == peerAddressIn->sin_addr.s_addr;
-    } else if (localAddress.sin_family == AF_INET6) {
+    }
+    if (localAddress.sin_family == AF_INET6) {
         // ipv6
-        auto localAddressIn = reinterpret_cast<sockaddr_in6*>(&localAddress);
-        auto peerAddressIn  = reinterpret_cast<sockaddr_in6*>(&peerAddress);
+        const auto localAddressIn = reinterpret_cast<sockaddr_in6*>(&localAddress);
+        const auto peerAddressIn  = reinterpret_cast<sockaddr_in6*>(&peerAddress);
         return localAddressIn->sin6_port == peerAddressIn->sin6_port &&
                memcmp(&localAddressIn->sin6_addr, &peerAddressIn->sin6_addr,
                       sizeof(localAddressIn->sin6_addr)) == 0;
     }
     return false;
 }
-}  // namespace zmuduo::net::sockets
+} // namespace zmuduo::net::sockets

@@ -8,7 +8,6 @@
 #include <string>
 
 namespace zmuduo {
-
 class Date;
 
 /**
@@ -19,14 +18,15 @@ class Date;
  * 可用于记录高精度时间、日志时间戳、延迟计算等。
  */
 class Timestamp : public Copyable {
-  public:
-    static constexpr int S_MICRO_SECONDS_PER_SECOND = 1000000;  ///< 每秒包含的微秒数
+public:
+    static constexpr int S_MICRO_SECONDS_PER_SECOND = 1000000; ///< 每秒包含的微秒数
 
-  public:
+public:
     /**
      * @brief 默认构造函数，生成无效时间戳
      */
-    Timestamp() : m_microSecondsSinceEpoch(0) {}
+    Timestamp()
+        : m_microSecondsSinceEpoch(0) {}
 
     /**
      * @brief 构造函数，使用日期
@@ -38,7 +38,7 @@ class Timestamp : public Copyable {
      * @brief 构造函数，使用指定微秒值
      * @param[in] microSecondsSinceEpoch 自 Unix 纪元起的微秒数
      */
-    explicit Timestamp(int64_t microSecondsSinceEpoch)
+    explicit Timestamp(const int64_t microSecondsSinceEpoch)
         : m_microSecondsSinceEpoch(microSecondsSinceEpoch) {}
 
     /**
@@ -46,7 +46,7 @@ class Timestamp : public Copyable {
      * @param[in] t 秒级时间戳
      * @return 转换后的 Timestamp 对象
      */
-    static Timestamp FromUnixTime(time_t t) {
+    static Timestamp FromUnixTime(const time_t t) {
         return FromUnixTime(t, 0);
     }
 
@@ -85,7 +85,7 @@ class Timestamp : public Copyable {
      * @return 自 Unix 纪元以来的秒数
      */
     time_t getSecondsSinceEpoch() const {
-        return static_cast<time_t>(m_microSecondsSinceEpoch / S_MICRO_SECONDS_PER_SECOND);
+        return m_microSecondsSinceEpoch / S_MICRO_SECONDS_PER_SECOND;
     }
 
     /**
@@ -107,7 +107,7 @@ class Timestamp : public Copyable {
      * @brief 与另一个时间戳交换值
      * @param[in,out] other 另一个时间戳
      */
-    void swap(Timestamp& other) {
+    void swap(Timestamp& other) noexcept {
         std::swap(m_microSecondsSinceEpoch, other.m_microSecondsSinceEpoch);
     }
 
@@ -116,8 +116,8 @@ class Timestamp : public Copyable {
      * @param[in] seconds 要增加的秒数（可为小数）
      * @return 新的时间戳
      */
-    Timestamp operator+(double seconds) const {
-        auto delta = static_cast<int64_t>(seconds * S_MICRO_SECONDS_PER_SECOND);
+    Timestamp operator+(const double seconds) const {
+        const auto delta = static_cast<int64_t>(seconds * S_MICRO_SECONDS_PER_SECOND);
         return Timestamp(m_microSecondsSinceEpoch + delta);
     }
 
@@ -176,8 +176,8 @@ class Timestamp : public Copyable {
         return os;
     }
 
-  private:
-    int64_t m_microSecondsSinceEpoch;  ///< 微秒时间戳
+private:
+    int64_t m_microSecondsSinceEpoch; ///< 微秒时间戳
 };
 
 /**
@@ -187,12 +187,12 @@ class Timestamp : public Copyable {
  * 可结合 Timestamp 使用，用于比较、显示日期等。
  */
 class Date : public Copyable {
-  public:
+public:
     /**
      * @brief 使用微秒时间戳构造
      * @param[in] microSecondsSinceEpoch 微秒时间戳
      */
-    explicit Date(int64_t microSecondsSinceEpoch)
+    explicit Date(const int64_t microSecondsSinceEpoch)
         : m_microSecondsSinceEpoch(microSecondsSinceEpoch) {}
 
     /**
@@ -277,17 +277,16 @@ class Date : public Copyable {
         return os;
     }
 
-  private:
+private:
     /**
      * @brief 获取去除时间部分后的日期时间戳（秒）
      * @return 当天 00:00:00 的时间戳
      */
     time_t toDateEpoch() const;
 
-  private:
-    int64_t m_microSecondsSinceEpoch;  ///< 微秒时间戳
+private:
+    int64_t m_microSecondsSinceEpoch; ///< 微秒时间戳
 };
-
-}  // namespace zmuduo
+} // namespace zmuduo
 
 #endif

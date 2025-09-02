@@ -3,8 +3,6 @@
 #ifndef ZMUDUO_BASE_UTILS_SYSTEM_UTIL_H
 #define ZMUDUO_BASE_UTILS_SYSTEM_UTIL_H
 
-#include "zmuduo/base/nocopyable.h"
-#include "zmuduo/base/nomoveable.h"
 #include <cstdint>
 #include <sys/types.h>
 
@@ -76,7 +74,6 @@ void Sleep(int64_t second);
  * @note 调用 POSIX nanosleep 函数，精度较高，可能被信号中断，线程安全。
  */
 void SleepUsec(int64_t usec);
-
-}  // namespace zmuduo::utils::system_util
+} // namespace zmuduo::utils::system_util
 
 #endif

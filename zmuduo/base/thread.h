@@ -9,10 +9,8 @@
 #include <functional>
 #include <string>
 #include <thread>
-#include <unistd.h>
 
 namespace zmuduo::thread {
-
 /**
  * @class Thread
  * @brief 线程封装类（不可拷贝）
@@ -23,7 +21,7 @@ namespace zmuduo::thread {
  * @note 启动线程后，线程 ID 会通过信号量机制同步回主线程。
  */
 class Thread : NoCopyable {
-  public:
+public:
     /**
      * @brief 线程任务类型定义
      *
@@ -31,7 +29,7 @@ class Thread : NoCopyable {
      */
     using Task = std::function<void()>;
 
-  public:
+public:
     /**
      * @brief 构造函数
      *
@@ -108,7 +106,7 @@ class Thread : NoCopyable {
         return S_NUM_CREATED;
     }
 
-  private:
+private:
     /**
      * @brief 设置默认线程名称（如 "Thread - 1"）
      *
@@ -116,14 +114,14 @@ class Thread : NoCopyable {
      */
     void setDefaultName();
 
-  private:
-    bool                    m_started;      ///< 是否已启动
-    bool                    m_joined;       ///< 是否已 join
-    std::thread             m_thread;       ///< std::thread 对象
-    pid_t                   m_tid;          ///< 系统级线程 ID
-    Task                    m_task;         ///< 线程执行任务
-    std::string             m_name;         ///< 线程名称
-    static std::atomic<int> S_NUM_CREATED;  ///< 已创建线程数（全局静态）
+private:
+    bool                    m_started = false; ///< 是否已启动
+    bool                    m_joined  = false; ///< 是否已 join
+    std::thread             m_thread;          ///< std::thread 对象
+    pid_t                   m_tid;             ///< 系统级线程 ID
+    Task                    m_task;            ///< 线程执行任务
+    std::string             m_name;            ///< 线程名称
+    static std::atomic<int> S_NUM_CREATED;     ///< 已创建线程数（全局静态）
 };
-}  // namespace zmuduo::thread
+} // namespace zmuduo::thread
 #endif

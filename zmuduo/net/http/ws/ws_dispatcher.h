@@ -3,7 +3,6 @@
 #ifndef ZMUDUO_NET_HTTP_WS_WS_DISPATCHER_H
 #define ZMUDUO_NET_HTTP_WS_WS_DISPATCHER_H
 
-#include "zmuduo/base/nocopyable.h"
 #include "zmuduo/net/http/ws/ws_servlet.h"
 
 namespace zmuduo::net::http::ws {
@@ -30,7 +29,7 @@ namespace zmuduo::net::http::ws {
  * @endcode
  */
 class ServletDispatcher : public Copyable {
-  public:
+public:
     /**
      * @brief 构造函数。
      * @note 初始化默认 Servlet 为 NotFoundServlet。
@@ -44,7 +43,7 @@ class ServletDispatcher : public Copyable {
      * @param[in] connection TCP 连接，表示 WebSocket 会话。
      * @note 根据 URI 查找匹配的 Servlet 并调用其 handle 方法。
      */
-    void handle(const std::string& uri, const WSFrameMessage& message, TcpConnectionPtr connection);
+    void handle(const std::string& uri, const WSFrameMessage& message, TcpConnectionPtr connection) const;
 
     /**
      * @brief 添加精确匹配的 Servlet。
@@ -110,7 +109,7 @@ class ServletDispatcher : public Copyable {
         m_default = std::make_shared<FunctionServlet>(std::move(callback));
     }
 
-  private:
+private:
     /**
      * @brief 获取匹配的 Servlet。
      * @param[in] path 请求的 URI。
@@ -119,12 +118,12 @@ class ServletDispatcher : public Copyable {
      */
     const Servlet::Ptr& getMatchedServlet(const std::string& path) const;
 
-  private:
-    std::unordered_map<std::string, Servlet::Ptr> m_exactServlets;  ///< 精确 URI 的 Servlet 映射
+private:
+    std::unordered_map<std::string, Servlet::Ptr> m_exactServlets; ///< 精确 URI 的 Servlet 映射
     std::vector<std::pair<std::string, Servlet::Ptr>>
-                 m_wildcardServlets;  ///< 通配符 URI 的 Servlet 映射
-    Servlet::Ptr m_default;           ///< 默认 Servlet
+    m_wildcardServlets;     ///< 通配符 URI 的 Servlet 映射
+    Servlet::Ptr m_default; ///< 默认 Servlet
 };
-}  // namespace zmuduo::net::http::ws
+} // namespace zmuduo::net::http::ws
 
 #endif

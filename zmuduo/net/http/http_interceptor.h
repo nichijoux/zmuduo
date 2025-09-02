@@ -9,7 +9,6 @@
 #include <utility>
 
 namespace zmuduo::net::http {
-
 /**
  * @class HttpInterceptor
  * @brief HTTP 拦截器抽象基类，用于拦截和处理 HTTP 请求。
@@ -55,21 +54,22 @@ namespace zmuduo::net::http {
  * @endcode
  */
 class HttpInterceptor : public Copyable {
-  public:
-    using Ptr = std::shared_ptr<HttpInterceptor>;  ///< 智能指针类型
+public:
+    using Ptr = std::shared_ptr<HttpInterceptor>; ///< 智能指针类型
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] id 拦截器唯一标识符。
      */
-    explicit HttpInterceptor(std::string id) : m_id(std::move(id)) {}
+    explicit HttpInterceptor(std::string id)
+        : m_id(std::move(id)) {}
 
     /**
      * @brief 虚析构函数。
      * @note 确保派生类正确析构。
      */
-    ~HttpInterceptor() = default;
+    virtual ~HttpInterceptor() = default;
 
     /**
      * @brief 拦截并处理 HTTP 请求。
@@ -89,8 +89,8 @@ class HttpInterceptor : public Copyable {
         return m_id;
     }
 
-  private:
-    std::string m_id;  ///< 拦截器唯一标识符
+private:
+    std::string m_id; ///< 拦截器唯一标识符
 };
 
 /**
@@ -118,19 +118,20 @@ class HttpInterceptor : public Copyable {
  * );
  * @endcode
  */
-class FunctionInterceptor : public HttpInterceptor {
-  public:
+class FunctionInterceptor final : public HttpInterceptor {
+public:
     using InterceptorCallback =
-        std::function<bool(const HttpRequest&, HttpResponse&)>;  ///< 拦截回调
+    std::function<bool(const HttpRequest&, HttpResponse&)>; ///< 拦截回调
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] id 拦截器唯一标识符。
      * @param[in] cb 拦截回调，执行 intercept 逻辑。
      */
     explicit FunctionInterceptor(std::string id, InterceptorCallback cb)
-        : HttpInterceptor(std::move(id)), m_callback(std::move(cb)) {}
+        : HttpInterceptor(std::move(id)),
+          m_callback(std::move(cb)) {}
 
     /**
      * @brief 拦截并处理 HTTP 请求。
@@ -144,10 +145,9 @@ class FunctionInterceptor : public HttpInterceptor {
         return !m_callback || m_callback(request, response);
     }
 
-  private:
-    InterceptorCallback m_callback;  ///< 拦截回调
+private:
+    InterceptorCallback m_callback; ///< 拦截回调
 };
-
-}  // namespace zmuduo::net::http
+} // namespace zmuduo::net::http
 
 #endif

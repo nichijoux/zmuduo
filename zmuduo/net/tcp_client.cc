@@ -12,7 +12,6 @@
 #endif
 
 namespace zmuduo::net {
-
 std::atomic<int64_t> TcpClient::S_NEXT_ID(0);
 
 TcpClient::TcpClient(EventLoop* loop, const Address::Ptr& serverAddress, std::string name)
@@ -20,17 +19,8 @@ TcpClient::TcpClient(EventLoop* loop, const Address::Ptr& serverAddress, std::st
       m_connector(std::make_shared<Connector>(loop, serverAddress)),
       m_name(std::move(name)),
       m_connectionCallback(defaultConnectionCallback),
-      m_messageCallback(defaultMessageCallback),
-      m_retry(false),
-      m_connected(false),
-      m_mutex(),
-      m_connection(nullptr)
-#ifdef ZMUDUO_ENABLE_OPENSSL
-      ,
-      m_sslContext(nullptr)
-#endif
-{
-    m_connector->setNewConnectionCallback([this](int socketFD) { newConnection(socketFD); });
+      m_messageCallback(defaultMessageCallback) {
+    m_connector->setNewConnectionCallback([this](const int socketFD) { newConnection(socketFD); });
     ZMUDUO_LOG_FMT_INFO("ctor[%p]", this);
 }
 
@@ -39,17 +29,17 @@ TcpClient::~TcpClient() {
     TcpConnectionPtr connection;
     bool             unique;
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard lock(m_mutex);
         unique     = m_connection.use_count() == 1;
         connection = m_connection;
     }
     if (connection) {
         assert(m_eventLoop == connection->getEventLoop());
         // FIXME: not 100% safe, if we are in different thread
-        m_eventLoop->runInLoop([connection, eventLoop = m_eventLoop]() {
+        m_eventLoop->runInLoop([connection, eventLoop = m_eventLoop] {
             connection->setCloseCallback([eventLoop](const TcpConnectionPtr& connection) {
                 // 关闭连接
-                eventLoop->queueInLoop([connection]() { connection->connectDestroyed(); });
+                eventLoop->queueInLoop([connection] { connection->connectDestroyed(); });
             });
         });
         if (unique) {
@@ -87,22 +77,24 @@ bool TcpClient::createSSLContext() {
     }
 
     // 配置验证选项
-    SSL_CTX_set_verify(m_sslContext, SSL_VERIFY_PEER, [](int preverify_ok, X509_STORE_CTX* ctx) {
-        if (!preverify_ok) {
-            char  buffer[256];
-            X509* cert = X509_STORE_CTX_get_current_cert(ctx);
-            int   err  = X509_STORE_CTX_get_error(ctx);
+    SSL_CTX_set_verify(m_sslContext, SSL_VERIFY_PEER,
+                       [](const int preverify_ok, X509_STORE_CTX* ctx) {
+                           if (!preverify_ok) {
+                               char        buffer[256]{};
+                               const X509* cert = X509_STORE_CTX_get_current_cert(ctx);
+                               const int   err  = X509_STORE_CTX_get_error(ctx);
 
-            ZMUDUO_LOG_ERROR << "证书验证失败: " << X509_verify_cert_error_string(err);
-            X509_NAME_oneline(X509_get_subject_name(cert), buffer, sizeof(buffer));
-            ZMUDUO_LOG_DEBUG << "证书主题: " << buffer;
-        }
-        return preverify_ok;
-    });
+                               ZMUDUO_LOG_ERROR << "证书验证失败: " << X509_verify_cert_error_string(err);
+                               X509_NAME_oneline(X509_get_subject_name(cert), buffer,
+                                                 sizeof(buffer));
+                               ZMUDUO_LOG_DEBUG << "证书主题: " << buffer;
+                           }
+                           return preverify_ok;
+                       });
 
     // 安全配置
     SSL_CTX_set_options(m_sslContext, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION |
-                                          SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
+                                      SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
 
     return true;
 }
@@ -156,7 +148,7 @@ bool TcpClient::loadCustomCACertificate(const std::string& caFile, const std::st
     ZMUDUO_LOG_INFO << "Loading CA certificates";
     CHECK_SSL_ERROR(
         SSL_CTX_load_verify_locations(m_sslContext, caFile.empty() ? nullptr : caFile.c_str(),
-                                      caPath.empty() ? nullptr : caPath.c_str()) <= 0,
+            caPath.empty() ? nullptr : caPath.c_str()) <= 0,
         "Failed to load CA certificates: %s", ERR_error_string(ERR_get_error(), nullptr));
 
 #    undef CHECK_SSL_ERROR
@@ -180,7 +172,7 @@ void TcpClient::disconnect() {
     m_connected = false;
     m_connector->disconnect();
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard lock(m_mutex);
         if (m_connection) {
             m_connection->shutdown();
         }
@@ -189,14 +181,14 @@ void TcpClient::disconnect() {
 
 void TcpClient::newConnection(int socketFD) {
     m_eventLoop->assertInLoopThread();
-    auto         peerAddrIn  = sockets::getPeerAddress(socketFD);
+    const auto   peerAddrIn  = sockets::getPeerAddress(socketFD);
     Address::Ptr peerAddress = Address::Create(sockets::sockaddr_cast(&peerAddrIn));
     char         buffer[64];
     snprintf(buffer, sizeof(buffer), "%s#%ld", peerAddress->toString().c_str(), S_NEXT_ID++);
     std::string connectName = m_name + buffer;
     ZMUDUO_LOG_FMT_INFO("TcpClient::newConnection[%s] - new connection [%s] from %s",
                         m_name.c_str(), connectName.c_str(), peerAddress->toString().c_str());
-    auto         localAddrIn  = sockets::getLocalAddress(socketFD);
+    const auto   localAddrIn  = sockets::getLocalAddress(socketFD);
     Address::Ptr localAddress = Address::Create(sockets::sockaddr_cast(&localAddrIn));
 #ifdef ZMUDUO_ENABLE_OPENSSL
     // ssl
@@ -210,7 +202,7 @@ void TcpClient::newConnection(int socketFD) {
         }
     }
     // 创建tcp连接
-    TcpConnectionPtr tcpConnection = std::make_shared<TcpConnection>(
+    const auto tcpConnection = std::make_shared<TcpConnection>(
         m_eventLoop, connectName, socketFD, localAddress, peerAddress, ssl);
 #else
     // 创建tcp连接
@@ -224,7 +216,7 @@ void TcpClient::newConnection(int socketFD) {
     tcpConnection->setConnectionCallback(m_connectionCallback);
     tcpConnection->setWriteCompleteCallback(m_writeCompleteCallback);
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard lock(m_mutex);
         m_connection = tcpConnection;
     }
     // 建立连接
@@ -235,7 +227,7 @@ void TcpClient::removeConnection(const TcpConnectionPtr& connection) {
     m_eventLoop->assertInLoopThread();
     assert(m_eventLoop == connection->getEventLoop());
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard lock(m_mutex);
         assert(m_connection == connection);
         m_connection.reset();
     }
@@ -247,5 +239,4 @@ void TcpClient::removeConnection(const TcpConnectionPtr& connection) {
         m_connector->restart();
     }
 }
-
-}  // namespace zmuduo::net
+} // namespace zmuduo::net

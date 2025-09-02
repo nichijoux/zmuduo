@@ -31,19 +31,19 @@ namespace zmuduo::net {
  * @endcode
  */
 class Socket : NoCopyable {
-  public:
+public:
     /**
      * @typedef std::unique_ptr&lt;Socket&gt;
      * @brief Socket 智能指针类型。
      */
     using Ptr = std::unique_ptr<Socket>;
 
-  public:
+public:
     /**
      * @brief 析构函数。
      * @note 关闭 socket 文件描述符（若有效）。
      */
-    ~Socket();
+    virtual ~Socket();
 
     /**
      * @brief 获取 socket 文件描述符。
@@ -74,7 +74,7 @@ class Socket : NoCopyable {
      */
     void setReusePort(bool on) const;
 
-  protected:
+protected:
     /**
      * @brief 创建非阻塞 socket。
      * @param[in] domain 协议族（如 AF_INET, AF_INET6）。
@@ -85,8 +85,8 @@ class Socket : NoCopyable {
      */
     static int CreateNonBlockingSocket(int domain, int type, int protocol);
 
-  protected:
-    int m_fd;  ///< socket 文件描述符
+protected:
+    int m_fd = -1; ///< socket 文件描述符
 };
 
 /**
@@ -111,7 +111,7 @@ class Socket : NoCopyable {
  * @endcode
  */
 class TcpSocket : public Socket {
-  public:
+public:
     /**
      * @typedef std::unique_ptr&lt;TcpSocket&gt;
      * @brief TcpSocket 智能指针类型。
@@ -124,18 +124,19 @@ class TcpSocket : public Socket {
      * @return 新创建的 TcpSocket 对象。
      * @note 调用 CreateNonBlockingSocket 创建非阻塞 TCP socket。
      */
-    static TcpSocket Create(int domain) {
-        int fd = Socket::CreateNonBlockingSocket(domain, SOCK_STREAM, IPPROTO_TCP);
+    static TcpSocket Create(const int domain) {
+        const int fd = Socket::CreateNonBlockingSocket(domain, SOCK_STREAM, IPPROTO_TCP);
         return TcpSocket(fd);
     }
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] fd socket 文件描述符。
      * @note 初始化为 TCP socket
      */
-    explicit TcpSocket(int fd) : Socket() {
+    explicit TcpSocket(const int fd)
+        : Socket() {
         m_fd = fd;
     }
 
@@ -205,20 +206,21 @@ class TcpSocket : public Socket {
  * @endcode
  */
 class UdpSocket : public Socket {
-  public:
+public:
     /**
      * @typedef std::unique_ptr&lt;UdpSocket&gt;
      * @brief UdpSocket 智能指针类型。
      */
     using Ptr = std::unique_ptr<UdpSocket>;
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] fd socket 文件描述符。
      * @note 初始化为 UDP socket，设置类型为 SOCK_DGRAM，协议为 IPPROTO_UDP，域为未知（-1）。
      */
-    explicit UdpSocket(int fd) : Socket() {
+    explicit UdpSocket(const int fd)
+        : Socket() {
         m_fd = fd;
     }
 
@@ -228,11 +230,11 @@ class UdpSocket : public Socket {
      * @return 新创建的 UdpSocket 对象。
      * @note 调用 CreateNonBlockingSocket 创建非阻塞 UDP socket。
      */
-    static UdpSocket Create(int domain) {
-        int fd = Socket::CreateNonBlockingSocket(domain, SOCK_DGRAM, IPPROTO_UDP);
+    static UdpSocket Create(const int domain) {
+        const int fd = Socket::CreateNonBlockingSocket(domain, SOCK_DGRAM, IPPROTO_UDP);
         return UdpSocket(fd);
     }
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

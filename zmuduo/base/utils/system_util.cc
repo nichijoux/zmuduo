@@ -21,27 +21,26 @@ pid_t GetTid() {
 
 // 毫秒 ms
 uint64_t GetCurrentMS() {
-    struct timeval tv{};
+    timeval tv{};
     gettimeofday(&tv, nullptr);
     return tv.tv_sec * 1000ul + tv.tv_usec / 1000;
 }
 
 // 微秒 µs
 uint64_t GetCurrentUS() {
-    struct timeval tv{};
+    timeval tv{};
     gettimeofday(&tv, nullptr);
     return tv.tv_sec * 1000 * 1000ul + tv.tv_usec;
 }
 
-void Sleep(int64_t second) {
+void Sleep(const int64_t second) {
     ::sleep(second);
 }
 
-void SleepUsec(int64_t usec) {
-    struct timespec ts{};
-    ts.tv_sec  = static_cast<time_t>(usec / Timestamp::S_MICRO_SECONDS_PER_SECOND);
-    ts.tv_nsec = static_cast<long>(usec % Timestamp::S_MICRO_SECONDS_PER_SECOND * 1000);
+void SleepUsec(const int64_t usec) {
+    timespec ts{};
+    ts.tv_sec  = usec / Timestamp::S_MICRO_SECONDS_PER_SECOND;
+    ts.tv_nsec = usec % Timestamp::S_MICRO_SECONDS_PER_SECOND * 1000;
     ::nanosleep(&ts, nullptr);
 }
-
-}  // namespace zmuduo::utils::system_util
+} // namespace zmuduo::utils::system_util

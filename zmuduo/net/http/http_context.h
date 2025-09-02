@@ -37,14 +37,14 @@ namespace zmuduo::net::http {
  * @endcode
  */
 class HttpContext : NoCopyable {
-  public:
+public:
     /**
      * @typedef std::shared_ptr&lt;HttpContext&gt;
      * @brief HttpContext 智能指针类型。
      */
     using Ptr = std::shared_ptr<HttpContext>;
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @note 初始化 HTTP 请求解析器和响应解析器。
@@ -125,10 +125,10 @@ class HttpContext : NoCopyable {
         return const_cast<HttpResponse&>(m_responseParser.getResponse());
     }
 
-  private:
-    HttpRequestParser  m_requestParser;   ///< HTTP请求解析器
-    HttpResponseParser m_responseParser;  ///< HTTP响应解析器
+private:
+    HttpRequestParser  m_requestParser;  ///< HTTP请求解析器
+    HttpResponseParser m_responseParser; ///< HTTP响应解析器
 };
-}  // namespace zmuduo::net::http
+} // namespace zmuduo::net::http
 
 #endif

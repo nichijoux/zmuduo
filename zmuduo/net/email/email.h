@@ -35,14 +35,14 @@ class EMail;
  * @endcode
  */
 class EMailEntity : public Copyable {
-  public:
+public:
     /**
      * @typedef std::shared_ptr&lt;EMailEntity&gt;
      * @brief EMailEntity 智能指针类型。
      */
     using Ptr = std::shared_ptr<EMailEntity>;
 
-  public:
+public:
     /**
      * @brief 默认构造函数，初始化空实体。
      */
@@ -78,7 +78,7 @@ class EMailEntity : public Copyable {
      * @return 头部值或默认值。
      */
     std::string getHeader(const std::string& key, const std::string& defaultValue = "") {
-        auto it = m_headers.find(key);
+        const auto it = m_headers.find(key);
         return it == m_headers.end() ? defaultValue : it->second;
     }
 
@@ -115,9 +115,9 @@ class EMailEntity : public Copyable {
         return os;
     }
 
-  private:
-    std::map<std::string, std::string> m_headers;  ///< MIME 头字段集合
-    std::string                        m_content;  ///< 内容体，如正文或附件内容
+private:
+    std::map<std::string, std::string> m_headers; ///< MIME 头字段集合
+    std::string                        m_content; ///< 内容体，如正文或附件内容
 };
 
 /**
@@ -140,14 +140,14 @@ class EMailEntity : public Copyable {
  * @endcode
  */
 class EMail : public Copyable {
-  public:
+public:
     /**
      * @typedef std::shared_ptr&lt;EMail&gt;
      * @brief EMail 智能指针类型。
      */
     using Ptr = std::shared_ptr<EMail>;
 
-  public:
+public:
     /**
      * @brief 快速创建一封电子邮件对象。
      * @param[in] from_address 发件人邮箱地址。
@@ -295,16 +295,16 @@ class EMail : public Copyable {
         return m_entities;
     }
 
-  private:
-    std::string                   m_fromEMailAddress;   ///< 发件人邮箱
-    std::string                   m_fromEMailPassword;  ///< 发件人密码（登录验证用）
-    std::string                   m_title;              ///< 邮件标题
-    std::string                   m_body;               ///< 邮件正文
-    std::vector<std::string>      m_toEMailAddress;     ///< 收件人邮箱列表
-    std::vector<std::string>      m_ccEMailAddress;     ///< 抄送人邮箱列表
-    std::vector<std::string>      m_bccEMailAddress;    ///< 密送人邮箱列表
-    std::vector<EMailEntity::Ptr> m_entities;           ///< 邮件实体（正文、附件等）
+private:
+    std::string                   m_fromEMailAddress;  ///< 发件人邮箱
+    std::string                   m_fromEMailPassword; ///< 发件人密码（登录验证用）
+    std::string                   m_title;             ///< 邮件标题
+    std::string                   m_body;              ///< 邮件正文
+    std::vector<std::string>      m_toEMailAddress;    ///< 收件人邮箱列表
+    std::vector<std::string>      m_ccEMailAddress;    ///< 抄送人邮箱列表
+    std::vector<std::string>      m_bccEMailAddress;   ///< 密送人邮箱列表
+    std::vector<EMailEntity::Ptr> m_entities;          ///< 邮件实体（正文、附件等）
 };
-}  // namespace zmuduo::net::email
+} // namespace zmuduo::net::email
 
 #endif

@@ -3,7 +3,8 @@
 #include <memory>
 
 namespace zmuduo::net::http {
-NotFoundServlet::NotFoundServlet(std::string name) : Servlet(std::move(name)) {
+NotFoundServlet::NotFoundServlet(std::string name)
+    : Servlet(std::move(name)) {
     m_content = "<html><head><title>404 Not Found"
                 "</title></head><body><center><h1>404 Not Found</h1></center>"
                 "<hr><center>" +
@@ -16,5 +17,4 @@ void NotFoundServlet::handle(const HttpRequest& request, HttpResponse& response)
     response.setHeader("Content-Type", "text/html");
     response.setBody(m_content);
 }
-
-}  // namespace zmuduo::net::http
+} // namespace zmuduo::net::http

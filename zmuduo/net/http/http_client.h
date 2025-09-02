@@ -40,7 +40,7 @@ namespace zmuduo::net::http {
  * @endcode
  */
 class HttpClient : NoCopyable {
-  public:
+public:
     /**
      * @typedef std::map&lt;std::string, std::string&gt;
      * @brief HTTP 请求头映射类型。
@@ -54,7 +54,7 @@ class HttpClient : NoCopyable {
      */
     using HttpResponseCallback = std::function<void(std::optional<HttpResponse>)>;
 
-  public:
+public:
     /**
      * @brief 构造函数（基于 URI 字符串）
      * @param[in] loop 事件循环，管理异步 I/O。
@@ -92,7 +92,7 @@ class HttpClient : NoCopyable {
      * @brief 设置是否重新连接
      * @param reconnect
      */
-    void setReConnect(bool reconnect) {
+    void setReConnect(const bool reconnect) {
         m_reconnect = reconnect;
     }
 
@@ -253,7 +253,7 @@ class HttpClient : NoCopyable {
     void
     doRequest(const HttpRequest& request, HttpResponseCallback callback, uint32_t timeout = 30);
 
-  private:
+private:
     /**
      * @brief 连接状态回调。
      * @param[in] connection TCP 连接对象。
@@ -271,15 +271,15 @@ class HttpClient : NoCopyable {
     void
     onMessage(const TcpConnectionPtr& connection, Buffer& buffer, const Timestamp& receiveTime);
 
-  private:
-    TcpClient   m_client;  ///< 底层 TCP 客户端
-    std::string m_host;    ///< 主机地址（IP:Port 或域名）
-    std::string m_path;    ///< 默认请求路径（从 URI 解析）
-    bool m_reconnect;  ///< 如果还有没有发送完的请求,断开连接后是否需要重新连接（默认为true）
-    std::unique_ptr<TimerId> m_timerId;  ///< 当前发送请求对应的超时定时器
+private:
+    TcpClient                m_client;    ///< 底层 TCP 客户端
+    std::string              m_host;      ///< 主机地址（IP:Port 或域名）
+    std::string              m_path;      ///< 默认请求路径（从 URI 解析）
+    bool                     m_reconnect; ///< 如果还有没有发送完的请求,断开连接后是否需要重新连接（默认为true）
+    std::unique_ptr<TimerId> m_timerId;   ///< 当前发送请求对应的超时定时器
     std::queue<std::tuple<HttpRequest, HttpResponseCallback, uint32_t>>
-        m_callbacks;  ///< 请求、响应回调、超时时间队列
+    m_callbacks; ///< 请求、响应回调、超时时间队列
 };
-}  // namespace zmuduo::net::http
+} // namespace zmuduo::net::http
 
 #endif

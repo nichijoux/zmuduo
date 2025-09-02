@@ -50,7 +50,7 @@ class Socket;
  * @endcode
  */
 class TcpConnection : NoCopyable, public std::enable_shared_from_this<TcpConnection> {
-  public:
+public:
     /**
      * @brief 构造函数，初始化 TCP 连接。
      * @param[in] loop 所属的事件循环。
@@ -69,7 +69,7 @@ class TcpConnection : NoCopyable, public std::enable_shared_from_this<TcpConnect
                   ,
                   SSL* ssl
 #endif
-    );
+        );
 
     /**
      * @brief 析构函数，清理连接资源。
@@ -170,7 +170,7 @@ class TcpConnection : NoCopyable, public std::enable_shared_from_this<TcpConnect
      * @param[in] callback 高水位标记回调函数。
      * @param[in] highWaterMark 发送缓冲区的高水位阈值（字节）。
      */
-    void setHighWaterMarkCallback(HighWaterMarkCallback callback, size_t highWaterMark) {
+    void setHighWaterMarkCallback(HighWaterMarkCallback callback, const size_t highWaterMark) {
         m_highWaterMarkCallback = std::move(callback);
         m_highWaterMark         = highWaterMark;
     }
@@ -231,7 +231,7 @@ class TcpConnection : NoCopyable, public std::enable_shared_from_this<TcpConnect
      * @brief 设置 TCP_NODELAY 属性（禁用/启用 Nagle 算法）。
      * @param[in] on 如果为 true，启用 TCP_NODELAY；否则禁用。
      */
-    void setTcpNoDelay(bool on);
+    void setTcpNoDelay(bool on) const;
 
     /**
      * @brief 开始监听读事件。
@@ -266,16 +266,16 @@ class TcpConnection : NoCopyable, public std::enable_shared_from_this<TcpConnect
      */
     void connectDestroyed();
 
-  private:
+private:
     /**
      * @enum State
      * @brief 表示 TCP 连接的状态。
      */
     enum class State {
-        DISCONNECTED,   ///< 连接已断开
-        DISCONNECTING,  ///< 连接正在断开
-        CONNECTING,     ///< 连接正在建立
-        CONNECTED       ///< 连接已建立
+        DISCONNECTED,  ///< 连接已断开
+        DISCONNECTING, ///< 连接正在断开
+        CONNECTING,    ///< 连接正在建立
+        CONNECTED      ///< 连接已建立
     };
 
 #ifdef ZMUDUO_ENABLE_OPENSSL
@@ -284,10 +284,10 @@ class TcpConnection : NoCopyable, public std::enable_shared_from_this<TcpConnect
      * @brief 表示 SSL 连接的状态（仅当启用 ZMUDUO_ENABLE_OPENSSL 时有效）。
      */
     enum class SSLState {
-        NONE,         ///< 无 SSL
-        HANDSHAKING,  ///< SSL 握手进行中
-        CONNECTED,    ///< SSL 连接已建立
-        FAILED        ///< SSL 连接失败
+        NONE,        ///< 无 SSL
+        HANDSHAKING, ///< SSL 握手进行中
+        CONNECTED,   ///< SSL 连接已建立
+        FAILED       ///< SSL 连接失败
     };
 
     /**
@@ -333,7 +333,7 @@ class TcpConnection : NoCopyable, public std::enable_shared_from_this<TcpConnect
     /**
      * @brief 在事件循环线程中优雅关闭连接（关闭写端）。
      */
-    void shutdownInLoop();
+    void shutdownInLoop() const;
 
     /**
      * @brief 在事件循环线程中开始监听读事件。
@@ -345,29 +345,29 @@ class TcpConnection : NoCopyable, public std::enable_shared_from_this<TcpConnect
      */
     void stopReadInLoop();
 
-  private:
-    EventLoop*                 m_eventLoop;     ///< 所属的事件循环（通常为 subLoop）
-    std::string                m_name;          ///< 连接名称
-    std::unique_ptr<TcpSocket> m_socket;        ///< 连接的 socket
-    std::unique_ptr<Channel>   m_channel;       ///< 事件处理的 Channel
-    const Address::Ptr         m_localAddress;  ///< 本地地址
-    const Address::Ptr         m_peerAddress;   ///< 远程地址
-    bool                       m_reading;       ///< 是否正在监听读事件
-    State                      m_state;         ///< 当前连接状态
-    ConnectionCallback         m_connectionCallback;     ///< 连接建立/断开回调
-    MessageCallback            m_messageCallback;        ///< 消息接收回调
-    WriteCompleteCallback      m_writeCompleteCallback;  ///< 写完成回调
-    HighWaterMarkCallback      m_highWaterMarkCallback;  ///< 高水位标记回调
-    CloseCallback              m_closeCallback;          ///< 关闭连接回调
-    size_t                     m_highWaterMark;          ///< 发送缓冲区高水位阈值
-    Buffer                     m_inputBuffer;            ///< 输入缓冲区
-    Buffer                     m_outputBuffer;           ///< 输出缓冲区
-    std::any                   m_context;                ///< 用户自定义上下文
+private:
+    EventLoop*                 m_eventLoop;                        ///< 所属的事件循环（通常为 subLoop）
+    std::string                m_name;                             ///< 连接名称
+    std::unique_ptr<TcpSocket> m_socket;                           ///< 连接的 socket
+    std::unique_ptr<Channel>   m_channel;                          ///< 事件处理的 Channel
+    const Address::Ptr         m_localAddress;                     ///< 本地地址
+    const Address::Ptr         m_peerAddress;                      ///< 远程地址
+    bool                       m_reading = true;                   ///< 是否正在监听读事件
+    State                      m_state   = State::CONNECTING;      ///< 当前连接状态
+    ConnectionCallback         m_connectionCallback;               ///< 连接建立/断开回调
+    MessageCallback            m_messageCallback;                  ///< 消息接收回调
+    WriteCompleteCallback      m_writeCompleteCallback;            ///< 写完成回调
+    HighWaterMarkCallback      m_highWaterMarkCallback;            ///< 高水位标记回调
+    CloseCallback              m_closeCallback;                    ///< 关闭连接回调
+    size_t                     m_highWaterMark = 64 * 1024 * 1024; ///< 发送缓冲区高水位阈值
+    Buffer                     m_inputBuffer;                      ///< 输入缓冲区
+    Buffer                     m_outputBuffer;                     ///< 输出缓冲区
+    std::any                   m_context;                          ///< 用户自定义上下文
 #ifdef ZMUDUO_ENABLE_OPENSSL
-    SSL*     m_ssl;       ///< SSL 上下文
-    SSLState m_sslState;  ///< SSL 连接状态
+    SSL*     m_ssl;      ///< SSL 上下文
+    SSLState m_sslState; ///< SSL 连接状态
 #endif
 };
-}  // namespace zmuduo::net
+} // namespace zmuduo::net
 
 #endif

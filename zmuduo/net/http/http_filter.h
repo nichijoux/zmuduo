@@ -46,19 +46,20 @@ namespace zmuduo::net::http {
  * @endcode
  */
 class HttpFilter : public Copyable {
-  public:
+public:
     /**
      * @typedef std::shared_ptr&lt;HttpFilter&gt;
      * @brief HttpFilter的智能指针类型
      */
     using Ptr = std::shared_ptr<HttpFilter>;
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] id 过滤器唯一标识符。
      */
-    explicit HttpFilter(std::string id) : m_id(std::move(id)) {}
+    explicit HttpFilter(std::string id)
+        : m_id(std::move(id)) {}
 
     /**
      * @brief 虚析构函数。
@@ -88,8 +89,8 @@ class HttpFilter : public Copyable {
         return m_id;
     }
 
-  private:
-    std::string m_id;  ///< 过滤器唯一标识符
+private:
+    std::string m_id; ///< 过滤器唯一标识符
 };
 
 /**
@@ -117,8 +118,8 @@ class HttpFilter : public Copyable {
  * );
  * @endcode
  */
-class FunctionFilter : public HttpFilter {
-  public:
+class FunctionFilter final : public HttpFilter {
+public:
     /**
      * @brief 请求过滤回调
      * @typedef std::function&lt;void(HttpRequest&)&gt;
@@ -132,7 +133,7 @@ class FunctionFilter : public HttpFilter {
      */
     using AfterCallback = std::function<void(HttpResponse& response)>;
 
-  public:
+public:
     /**
      * @brief 构造函数。
      * @param[in] id 过滤器唯一标识符。
@@ -166,11 +167,10 @@ class FunctionFilter : public HttpFilter {
         }
     }
 
-  private:
-    BeforeCallback m_beforeCallback;  ///< 请求过滤回调
-    AfterCallback  m_afterCallback;   ///< 响应过滤回调
+private:
+    BeforeCallback m_beforeCallback; ///< 请求过滤回调
+    AfterCallback  m_afterCallback;  ///< 响应过滤回调
 };
-
-}  // namespace zmuduo::net::http
+} // namespace zmuduo::net::http
 
 #endif
